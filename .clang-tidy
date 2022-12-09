@@ -1,0 +1,34 @@
+---
+Checks: '*,
+-altera-*,
+-cppcoreguidelines-pro-type-reinterpret-cast,
+-fuchsia-*,
+-*-uppercase-literal-suffix,
+-*-vararg,
+-*-magic-numbers,
+-modernize-use-trailing-return-type,
+-modernize-use-nodiscard,
+-llvm-header-guard,
+-llvmlibc-*,
+-readability-implicit-bool-conversion
+'
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+FormatStyle:     none
+CheckOptions:
+  - key:             llvm-else-after-return.WarnOnConditionVariables
+    value:           'false'
+  - key:             modernize-loop-convert.MinConfidence
+    value:           reasonable
+  - key:             modernize-replace-auto-ptr.IncludeStyle
+    value:           llvm
+  - key:             cert-str34-c.DiagnoseSignedUnsignedCharComparisons
+    value:           'false'
+  - key:             google-readability-namespace-comments.ShortNamespaceLines
+    value:           '10'
+  - key:             cert-oop54-cpp.WarnOnlyIfThisHasSuspiciousField
+    value:           'false'
+  - key:             cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value:           'true'
+...

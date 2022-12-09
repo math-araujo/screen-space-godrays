@@ -1,0 +1,14 @@
+---
+Language:  Cpp
+Standard:  Latest      
+BasedOnStyle:  Microsoft
+PointerAlignment: Left
+AccessModifierOffset: -4
+AllowAllArgumentsOnNextLine: true
+BraceWrapping:
+  SplitEmptyFunction: false
+BreakBeforeBraces: Allman
+BreakConstructorInitializers: AfterColon
+AlwaysBreakTemplateDeclarations: Yes
+...
+
