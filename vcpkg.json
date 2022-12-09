@@ -1,0 +1,18 @@
+{
+    "name": "screen-space-godrays",
+    "version": "1.0",
+    "dependencies": [
+        "glfw3",
+        "glad",
+        "glm",
+        "stb",
+        "tinyobjloader",
+        {
+            "name": "imgui",
+            "features": [
+                "glfw-binding",
+                "opengl3-binding"
+            ]
+        }
+    ]
+}
