@@ -18,33 +18,53 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<std::pair<std::string_view, gl::Shader::Type>>{
         {"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
         {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment}});
-    default_cube_ = std::make_unique<gl::IndexedMesh>(
+    default_cube_ = std::make_unique<gl::Mesh>(
         // clang-format off
         std::vector<float>{
-             1.0,  1.0, -1.0,
-             1.0, -1.0, -1.0,
-             1.0,  1.0,  1.0,
-             1.0, -1.0,  1.0,
-            -1.0,  1.0, -1.0,
-            -1.0, -1.0, -1.0,
-            -1.0,  1.0,  1.0,
-            -1.0, -1.0,  1.0
+        // Back face
+        -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, // Bottom-left
+         1.0f,  1.0f, -1.0f, 0.0f, 0.0f, -1.0f, // top-right
+         1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, // bottom-right         
+         1.0f,  1.0f, -1.0f, 0.0f, 0.0f, -1.0f, // top-right
+        -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, -1.0f, // bottom-left
+        -1.0f,  1.0f, -1.0f, 0.0f, 0.0f, -1.0f, // top-left
+        // Front face
+        -1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // bottom-left
+         1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // bottom-right
+         1.0f,  1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // top-right
+         1.0f,  1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // top-right
+        -1.0f,  1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // top-left
+        -1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // bottom-left
+        // Left face
+        -1.0f,  1.0f,  1.0f, -1.0f, 0.0f, 0.0f, // top-right
+        -1.0f,  1.0f, -1.0f, -1.0f, 0.0f, 0.0f, // top-left
+        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+        -1.0f, -1.0f,  1.0f, -1.0f, 0.0f, 0.0f, // bottom-right
+        -1.0f,  1.0f,  1.0f, -1.0f, 0.0f, 0.0f, // top-right
+        // Right face
+         1.0f,  1.0f,  1.0f, 1.0f, 0.0f, 0.0f, // top-left
+         1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, // bottom-right
+         1.0f,  1.0f, -1.0f, 1.0f, 0.0f, 0.0f, // top-right         
+         1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, // bottom-right
+         1.0f,  1.0f,  1.0f, 1.0f, 0.0f, 0.0f, // top-left
+         1.0f, -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, // bottom-left     
+        // Bottom face
+        -1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, // top-right
+         1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, // top-left
+         1.0f, -1.0f,  1.0f, 0.0f, -1.0f, 0.0f, // bottom-left
+         1.0f, -1.0f,  1.0f, 0.0f, -1.0f, 0.0f, // bottom-left
+        -1.0f, -1.0f,  1.0f, 0.0f, -1.0f, 0.0f, // bottom-right
+        -1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, // top-right
+        // Top face
+        -1.0f,  1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // top-left
+         1.0f,  1.0f,  1.0f, 0.0f, 1.0f, 0.0f, // bottom-right
+         1.0f,  1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // top-right     
+         1.0f,  1.0f,  1.0f, 0.0f, 1.0f, 0.0f, // bottom-right
+        -1.0f,  1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // top-left
+        -1.0f,  1.0f,  1.0f, 0.0f, 1.0f, 0.0f  // bottom-left        
         },
-        std::vector<std::uint32_t>{
-            4, 2, 0,
-            2, 7, 3,
-            6, 5, 7,
-            1, 7, 5,
-            0, 3, 1,
-            4, 1, 5,
-            4, 6, 2,
-            2, 6, 7,
-            6, 4, 5,
-            1, 3, 7,
-            0, 2, 3,
-            4, 0, 1
-        },
-        std::vector<int>{3});
+        std::vector<int>{3, 3});
     // clang-format on
 }
 
@@ -58,6 +78,11 @@ void MainApplication::render()
 
     // Render scene...
     shader_->use();
+    shader_->set_vec3_uniform("light.direction", light_.direction);
+    shader_->set_vec3_uniform("light.ambient", light_.ambient);
+    shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
+    shader_->set_vec3_uniform("light.specular", light_.specular);
+    shader_->set_vec3_uniform("view_pos", camera().position());
     shader_->set_mat4_uniform("mvp", camera().view_projection());
     default_cube_->render();
 
@@ -71,9 +96,16 @@ void MainApplication::render_imgui_editor()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("FPS");
+    ImGui::Begin("Settings");
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
+    if (ImGui::TreeNode("Light"))
+    {
+        ImGui::SliderFloat3("Direction", glm::value_ptr(light_.direction), -20.0f, 20.0f);
+        // ImGui::SliderFloat3("Diffuse", glm::value_ptr(light_.diffuse), 0.0f, 1.0f);
+
+        ImGui::TreePop();
+    }
     ImGui::End();
 
     ImGui::Render();

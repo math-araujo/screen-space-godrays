@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "gl/application.hpp"
+#include "gl/light.hpp"
 #include "gl/mesh.hpp"
 #include "gl/shader.hpp"
 
@@ -22,7 +23,11 @@ public:
 
 private:
     std::unique_ptr<gl::ShaderProgram> shader_{};
-    std::unique_ptr<gl::IndexedMesh> default_cube_{};
+    std::unique_ptr<gl::Mesh> default_cube_{};
+    gl::DirectionalLight light_{.direction = glm::vec3{1.0f, 1.0f, 1.0f},
+                                .ambient = glm::vec3{0.2f, 0.0f, 0.2f},
+                                .diffuse = glm::vec3{0.7f, 0.0f, 0.7f},
+                                .specular = glm::vec3{0.1f, 0.0f, 0.1f}};
 };
 
 #endif // MAIN_APPLICATION_HPP
