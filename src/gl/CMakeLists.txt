@@ -6,9 +6,10 @@ add_library(gl STATIC
     mesh.hpp mesh.cpp
     shader.hpp shader.cpp
     camera.hpp camera.cpp
+    io.hpp io.cpp
 )
 
-target_link_libraries(gl PUBLIC glad::glad glfw glm::glm imgui::imgui)
+target_link_libraries(gl PUBLIC glad::glad glfw glm::glm imgui::imgui tinyobjloader::tinyobjloader)
 target_compile_features(gl PRIVATE cxx_std_20)
 set_target_properties(gl PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(gl PRIVATE ${STB_INCLUDE_DIRS})
