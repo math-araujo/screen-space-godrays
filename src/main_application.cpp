@@ -20,8 +20,14 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<std::pair<std::string_view, gl::Shader::Type>>{
         {"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
         {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment}});
-    meshes_ = gl::read_triangle_mesh("assets/models/uv_sphere.obj");
-    meshes_.merge(gl::read_triangle_mesh("assets/models/cube.obj"));
+    auto meshes = gl::read_triangle_mesh("assets/models/uv_sphere.obj");
+    meshes.merge(gl::read_triangle_mesh("assets/models/cube.obj"));
+    for (auto& pair : meshes)
+    {
+        gl::Model model{.mesh = std::move(pair.second)};
+        models_.emplace(pair.first, std::move(model));
+    }
+    models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
 }
 
 void MainApplication::render()
@@ -39,11 +45,10 @@ void MainApplication::render()
     shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
     shader_->set_vec3_uniform("light.specular", light_.specular);
     shader_->set_vec3_uniform("view_pos", camera().position());
-    shader_->set_mat4_uniform("mvp", camera().view_projection());
-    meshes_.at("Cube").render();
-    shader_->set_mat4_uniform("mvp", camera().view_projection() *
-                                         glm::translate(glm::mat4{1.0f}, glm::vec3{0.0f, 5.0f, -50.0f}));
-    meshes_.at("UVSphere").render();
+    shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
+    models_.at("Cube").mesh.render();
+    shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
+    models_.at("UVSphere").mesh.render();
 
     // Render GUI
     render_imgui_editor();
@@ -61,7 +66,6 @@ void MainApplication::render_imgui_editor()
     if (ImGui::TreeNode("Light"))
     {
         ImGui::SliderFloat3("Direction", glm::value_ptr(light_.direction), -20.0f, 20.0f);
-        // ImGui::SliderFloat3("Diffuse", glm::value_ptr(light_.diffuse), 0.0f, 1.0f);
 
         ImGui::TreePop();
     }

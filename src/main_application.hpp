@@ -5,7 +5,7 @@
 
 #include "gl/application.hpp"
 #include "gl/light.hpp"
-#include "gl/mesh.hpp"
+#include "gl/model.hpp"
 #include "gl/shader.hpp"
 
 class MainApplication : public gl::Application
@@ -23,7 +23,7 @@ public:
 
 private:
     std::unique_ptr<gl::ShaderProgram> shader_{};
-    std::unordered_map<std::string, gl::Mesh> meshes_{};
+    std::unordered_map<std::string, gl::Model> models_{};
     gl::DirectionalLight light_{.direction = glm::vec3{1.0f, 1.0f, 1.0f},
                                 .ambient = glm::vec3{0.2f, 0.0f, 0.2f},
                                 .diffuse = glm::vec3{0.7f, 0.0f, 0.7f},
