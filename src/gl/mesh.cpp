@@ -34,6 +34,7 @@ Mesh::Mesh(std::vector<float> vertices_data, std::vector<int> attributes_sizes) 
 }
 
 Mesh::Mesh(Mesh&& other) noexcept :
+    attributes_sizes_{std::move(other.attributes_sizes_)}, stride_{other.stride_},
     number_of_vertices_{other.number_of_vertices_}, vertex_array_identifier_{other.vertex_array_identifier_}
 {
     other.vertex_array_identifier_ = 0;
@@ -41,8 +42,10 @@ Mesh::Mesh(Mesh&& other) noexcept :
 
 Mesh& Mesh::operator=(Mesh&& other) noexcept
 {
-    std::swap(vertex_array_identifier_, other.vertex_array_identifier_);
+    std::swap(attributes_sizes_, other.attributes_sizes_);
+    std::swap(stride_, other.stride_);
     std::swap(number_of_vertices_, other.number_of_vertices_);
+    std::swap(vertex_array_identifier_, other.vertex_array_identifier_);
     return *this;
 }
 
@@ -119,6 +122,7 @@ IndexedMesh::IndexedMesh(IndexedMesh&& mesh) noexcept :
     vertex_array_identifier_{mesh.vertex_array_identifier_}, vertex_buffer_identifier_{mesh.vertex_buffer_identifier_},
     element_buffer_object_id_{mesh.element_buffer_object_id_}
 {
+    mesh.stride_ = 0;
     mesh.number_of_vertices_ = 0;
     mesh.number_of_indices_ = 0;
     mesh.vertex_array_identifier_ = 0;
