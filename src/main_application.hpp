@@ -23,6 +23,7 @@ public:
 
 private:
     std::unique_ptr<gl::ShaderProgram> shader_{};
+    std::unique_ptr<gl::ShaderProgram> basic_shader_{};
     std::unordered_map<std::string, gl::Model> models_{};
     gl::DirectionalLight light_{.direction = glm::vec3{1.0f, 1.0f, 1.0f},
                                 .ambient = glm::vec3{0.2f, 0.0f, 0.2f},

@@ -20,6 +20,10 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<std::pair<std::string_view, gl::Shader::Type>>{
         {"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
         {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment}});
+    basic_shader_ =
+        std::make_unique<gl::ShaderProgram>(std::initializer_list<std::pair<std::string_view, gl::Shader::Type>>{
+            {"assets/shaders/basic/vertex.glsl", gl::Shader::Type::Vertex},
+            {"assets/shaders/basic/fragment.glsl", gl::Shader::Type::Fragment}});
     auto meshes = gl::read_triangle_mesh("assets/models/uv_sphere.obj");
     meshes.merge(gl::read_triangle_mesh("assets/models/cube.obj"));
     for (auto& pair : meshes)
@@ -47,7 +51,8 @@ void MainApplication::render()
     shader_->set_vec3_uniform("view_pos", camera().position());
     shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
     models_.at("Cube").mesh.render();
-    shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
+    basic_shader_->use();
+    basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
     models_.at("UVSphere").mesh.render();
 
     // Render GUI
