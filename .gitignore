@@ -34,3 +34,4 @@
 # Additional files/directories to ignore
 .vscode/
 notes.md
+imgui.ini
