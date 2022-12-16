@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "gl/application.hpp"
+#include "gl/framebuffer.hpp"
 #include "gl/light.hpp"
 #include "gl/model.hpp"
 #include "gl/shader.hpp"
@@ -22,8 +23,9 @@ public:
     void render_imgui_editor() override;
 
 private:
-    std::unique_ptr<gl::ShaderProgram> shader_{};
+    std::unique_ptr<gl::ShaderProgram> blinn_phong_shader_{};
     std::unique_ptr<gl::ShaderProgram> basic_shader_{};
+    std::unique_ptr<gl::Framebuffer> occlusion_fbo_{};
     std::unordered_map<std::string, gl::Model> models_{};
     gl::DirectionalLight light_{.direction = glm::vec3{1.0f, 1.0f, 1.0f},
                                 .ambient = glm::vec3{0.2f, 0.0f, 0.2f},

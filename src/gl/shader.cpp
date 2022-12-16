@@ -77,9 +77,10 @@ ShaderProgram::ShaderProgram(std::initializer_list<ShaderInfo> initializer) : pr
 {
     std::vector<Shader> shaders;
     shaders.reserve(initializer.size());
-    for (const auto& info : initializer)
+
+    for (const auto& [filepath, shader_type] : initializer)
     {
-        shaders.emplace_back(load_shader_from_file(info.filepath, info.type));
+        shaders.emplace_back(load_shader_from_file(filepath, shader_type));
         glAttachShader(program_id_, shaders.back().identifier());
     }
 
@@ -141,9 +142,9 @@ void check_shader_program_link_status(std::uint32_t shader_program_id, std::init
         std::stringstream stream;
         stream << "Shader program linking error:\n" << error_log.data() << "\nShader Program Files: ";
 
-        for (const auto& info : shader_data)
+        for (const auto& [filepath, shader_type] : shader_data)
         {
-            stream << info.filepath << " ";
+            stream << filepath << " ";
         }
         stream << "\n";
         throw std::runtime_error(stream.str());

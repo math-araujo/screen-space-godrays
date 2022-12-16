@@ -77,9 +77,6 @@ void Framebuffer::clear()
 {
     glClearNamedFramebufferfv(id_, GL_COLOR, 0, clear_color_.data());
     glClearNamedFramebufferfv(id_, GL_DEPTH, 0, &clear_depth_);
-
-    // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Framebuffer::bind()
