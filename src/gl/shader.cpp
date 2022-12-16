@@ -73,14 +73,13 @@ const std::string& Shader::shader_typename(Shader::Type type)
     return shader_types.at(type);
 }
 
-ShaderProgram::ShaderProgram(std::initializer_list<std::pair<std::string_view, Shader::Type>> initializer) :
-    program_id_{glCreateProgram()}
+ShaderProgram::ShaderProgram(std::initializer_list<ShaderInfo> initializer) : program_id_{glCreateProgram()}
 {
     std::vector<Shader> shaders;
     shaders.reserve(initializer.size());
-    for (const auto& [filepath, shader_type] : initializer)
+    for (const auto& info : initializer)
     {
-        shaders.emplace_back(load_shader_from_file(filepath, shader_type));
+        shaders.emplace_back(load_shader_from_file(info.filepath, info.type));
         glAttachShader(program_id_, shaders.back().identifier());
     }
 
@@ -107,7 +106,6 @@ Shader load_shader_from_file(std::string_view filepath, Shader::Type type)
 
     std::stringstream source_code_stream;
     source_code_stream << shader_file.rdbuf();
-    // return Shader{source_code_stream.str(), type};
     return Shader{process_shader_include(source_code_stream.str(), std::filesystem::path{filepath}), type};
 }
 
@@ -132,8 +130,7 @@ std::string process_shader_include(std::string shader_source, std::filesystem::p
     return shader_source;
 }
 
-void check_shader_program_link_status(std::uint32_t shader_program_id,
-                                      std::initializer_list<std::pair<std::string_view, Shader::Type>> shader_data)
+void check_shader_program_link_status(std::uint32_t shader_program_id, std::initializer_list<ShaderInfo> shader_data)
 {
     int linking_success{0};
     glGetProgramiv(shader_program_id, GL_LINK_STATUS, &linking_success);
@@ -143,9 +140,10 @@ void check_shader_program_link_status(std::uint32_t shader_program_id,
         glGetProgramInfoLog(shader_program_id, static_cast<GLsizei>(error_log.size()), nullptr, error_log.data());
         std::stringstream stream;
         stream << "Shader program linking error:\n" << error_log.data() << "\nShader Program Files: ";
-        for (const auto& [filepath, shader_type] : shader_data)
+
+        for (const auto& info : shader_data)
         {
-            stream << filepath << " ";
+            stream << info.filepath << " ";
         }
         stream << "\n";
         throw std::runtime_error(stream.str());

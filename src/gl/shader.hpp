@@ -42,11 +42,17 @@ private:
     static const std::string& shader_typename(Type type);
 };
 
+struct ShaderInfo
+{
+    std::string_view filepath;
+    Shader::Type type;
+};
+
 class ShaderProgram
 {
 public:
     ShaderProgram() = default;
-    explicit ShaderProgram(std::initializer_list<std::pair<std::string_view, Shader::Type>> initializer);
+    explicit ShaderProgram(std::initializer_list<ShaderInfo> initializer);
     ShaderProgram(const ShaderProgram&) = delete;
     ShaderProgram(ShaderProgram&& other) noexcept;
     ShaderProgram& operator=(const ShaderProgram&) = delete;
@@ -76,8 +82,7 @@ private:
 // Auxiliary free functions
 void check_shader_compilation(std::uint32_t shader_id, std::string_view shader_type);
 Shader load_shader_from_file(std::string_view filepath, Shader::Type type);
-void check_shader_program_link_status(std::uint32_t shader_program_id,
-                                      std::initializer_list<std::pair<std::string_view, Shader::Type>> shader_data);
+void check_shader_program_link_status(std::uint32_t shader_program_id, std::initializer_list<ShaderInfo> shader_data);
 std::string process_shader_include(std::string shader_source, std::filesystem::path shader_path);
 
 template <typename T>

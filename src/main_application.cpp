@@ -17,13 +17,13 @@
 MainApplication::MainApplication(int window_width, int window_height, std::string_view title) :
     gl::Application(window_width, window_height, title)
 {
-    shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<std::pair<std::string_view, gl::Shader::Type>>{
-        {"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
-        {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment}});
-    basic_shader_ =
-        std::make_unique<gl::ShaderProgram>(std::initializer_list<std::pair<std::string_view, gl::Shader::Type>>{
-            {"assets/shaders/basic/vertex.glsl", gl::Shader::Type::Vertex},
-            {"assets/shaders/basic/fragment.glsl", gl::Shader::Type::Fragment}});
+    camera().set_position(glm::vec3{0.0f, 0.0f, 20.0f});
+    shader_ = std::make_unique<gl::ShaderProgram>(
+        std::initializer_list<gl::ShaderInfo>{{"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
+                                              {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment}});
+    basic_shader_ = std::make_unique<gl::ShaderProgram>(
+        std::initializer_list<gl::ShaderInfo>{{"assets/shaders/basic/vertex.glsl", gl::Shader::Type::Vertex},
+                                              {"assets/shaders/basic/fragment.glsl", gl::Shader::Type::Fragment}});
     auto meshes = gl::read_triangle_mesh("assets/models/uv_sphere.obj");
     meshes.merge(gl::read_triangle_mesh("assets/models/cube.obj"));
     for (auto& pair : meshes)
@@ -32,6 +32,7 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
         models_.emplace(pair.first, std::move(model));
     }
     models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
+    light_.direction = glm::normalize(-models_.at("UVSphere").translation);
 }
 
 void MainApplication::render()
@@ -68,12 +69,12 @@ void MainApplication::render_imgui_editor()
     ImGui::Begin("Settings");
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                 ImGui::GetIO().Framerate);
-    if (ImGui::TreeNode("Light"))
+    /*if (ImGui::TreeNode("Light"))
     {
         ImGui::SliderFloat3("Direction", glm::value_ptr(light_.direction), -20.0f, 20.0f);
 
         ImGui::TreePop();
-    }
+    }*/
     ImGui::End();
 
     ImGui::Render();
