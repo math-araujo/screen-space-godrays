@@ -50,6 +50,7 @@ void MainApplication::render()
     shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
     shader_->set_vec3_uniform("light.specular", light_.specular);
     shader_->set_vec3_uniform("view_pos", camera().position());
+    shader_->set_vec3_uniform("model_color", glm::vec3{1.0f, 0.0f, 1.0f});
     shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
     models_.at("Cube").mesh.render();
     basic_shader_->use();

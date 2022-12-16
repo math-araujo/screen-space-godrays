@@ -27,8 +27,8 @@ private:
     std::unordered_map<std::string, gl::Model> models_{};
     gl::DirectionalLight light_{.direction = glm::vec3{1.0f, 1.0f, 1.0f},
                                 .ambient = glm::vec3{0.2f, 0.0f, 0.2f},
-                                .diffuse = glm::vec3{0.7f, 0.0f, 0.7f},
-                                .specular = glm::vec3{0.1f, 0.0f, 0.1f}};
+                                .diffuse = glm::vec3{0.6f, 0.0f, 0.6f},
+                                .specular = glm::vec3{0.2f, 0.0f, 0.2f}};
 };
 
 #endif // MAIN_APPLICATION_HPP
