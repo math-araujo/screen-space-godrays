@@ -2,6 +2,10 @@
 
 (WIP) Implementation of the paper "Volumetric Light Scattering as a Post-Process" using C++20 and OpenGL 4.5.
 
+First results with the technique on a toy scene aka "minimum viable scene":
+
+![Toy Scene showing Screen Space God Rays](docs/images/toy-scene-1.png?raw=True)
+
 ## Features
 
 TODO
