@@ -25,10 +25,19 @@ public:
 private:
     enum class RenderMode
     {
-        CompleteRender = 0,
-        DefaultSceneOnly,
+        DefaultSceneOnly = 0,
         OcclusionMapOnly,
-        RadialBlurOnly
+        RadialBlurOnly,
+        CompleteRender
+    };
+
+    struct PostprocessingCoefficients
+    {
+        int num_samples;
+        float density;
+        float exposure;
+        float decay;
+        float weight;
     };
 
     std::unique_ptr<gl::ShaderProgram> blinn_phong_shader_{};
@@ -42,6 +51,9 @@ private:
                                 .ambient = glm::vec3{0.2f, 0.0f, 0.2f},
                                 .diffuse = glm::vec3{0.6f, 0.0f, 0.6f},
                                 .specular = glm::vec3{0.2f, 0.0f, 0.2f}};
+    PostprocessingCoefficients coefficients{
+        .num_samples = 100, .density = 1.0f, .exposure = 1.0f, .decay = 1.0f, .weight = 0.01f};
+    bool apply_radial_blur_{true};
 };
 
 #endif // MAIN_APPLICATION_HPP

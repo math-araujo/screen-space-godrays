@@ -34,8 +34,8 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
         {"assets/shaders/post_process/fragment.glsl", gl::Shader::Type::Fragment}});
 
     // Create framebuffer objects
-    const std::uint32_t half_width{static_cast<std::uint32_t>(window_width / 2)};
-    const std::uint32_t half_height{static_cast<std::uint32_t>(window_height / 2)};
+    const std::uint32_t half_width{static_cast<std::uint32_t>(window_width)};
+    const std::uint32_t half_height{static_cast<std::uint32_t>(window_height)};
     occlusion_fbo_ = std::make_unique<gl::Framebuffer>(
         half_width, half_height, gl::Renderbuffer{half_width, half_height, GL_DEPTH_COMPONENT32},
         gl::Texture{half_width, half_height, gl::Texture::Attributes{.wrap_s = GL_REPEAT, .wrap_t = GL_REPEAT}});
@@ -68,6 +68,13 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     blinn_phong_shader_->set_vec3_uniform("light.ambient", light_.ambient);
     blinn_phong_shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
     blinn_phong_shader_->set_vec3_uniform("light.specular", light_.specular);
+
+    post_process_shader_->set_bool_uniform("apply_radial_blur", apply_radial_blur_);
+    post_process_shader_->set_int_uniform("coefficients.num_samples", coefficients.num_samples);
+    post_process_shader_->set_float_uniform("coefficients.density", coefficients.density);
+    post_process_shader_->set_float_uniform("coefficients.exposure", coefficients.exposure);
+    post_process_shader_->set_float_uniform("coefficients.decay", coefficients.decay);
+    post_process_shader_->set_float_uniform("coefficients.weight", coefficients.weight);
 }
 
 void MainApplication::render()
@@ -115,25 +122,38 @@ void MainApplication::render()
     and the radial blur.
     */
 
-    // TODO: render post-process effect using full-screen quad
-    // DEBUG: blend between a red-quad and the default scene.
     glEnable(GL_BLEND);
-
     switch (render_mode_)
     {
-    case RenderMode::OcclusionMapOnly:
-    case RenderMode::RadialBlurOnly:
-        glBlendFunc(GL_ONE, GL_ZERO);
-        break;
     case RenderMode::DefaultSceneOnly:
         glBlendFunc(GL_ZERO, GL_ONE);
         break;
+    case RenderMode::OcclusionMapOnly:
+        glBlendFunc(GL_ONE, GL_ZERO);
+        apply_radial_blur_ = false;
+        break;
+    case RenderMode::RadialBlurOnly:
+        glBlendFunc(GL_ONE, GL_ZERO);
+        apply_radial_blur_ = true;
+        break;
+    case RenderMode::CompleteRender:
     default:
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        apply_radial_blur_ = true;
         break;
     }
 
     post_process_shader_->use();
+    post_process_shader_->set_bool_uniform("apply_radial_blur", apply_radial_blur_);
+    occlusion_fbo_->bind_color(0);
+
+    // The light source is a UV Sphere initially centered at origin; the model matrix is responsible
+    // for updating it's position in the world space.
+    const glm::vec4 clip_light_position{camera().view_projection() * models_.at("UVSphere").transform() *
+                                        glm::vec4{0.0f, 0.0f, 0.0f, 1.0f}};
+    const glm::vec4 ndc_light_position{clip_light_position / clip_light_position.w};
+    const glm::vec4 screen_space_light_position{(ndc_light_position + 1.0f) * 0.5f};
+    post_process_shader_->set_vec4_uniform("screen_space_light_pos", screen_space_light_position);
     full_screen_quad_->render();
     glDisable(GL_BLEND);
 
@@ -155,22 +175,13 @@ void MainApplication::render_imgui_editor()
     if (ImGui::TreeNode("Render Mode"))
     {
         ImGui::TreePop();
-        ImGui::RadioButton("Complete Scene", &render_mode_value, 0);
-        ImGui::RadioButton("Default Scene Only", &render_mode_value, 1);
-        ImGui::RadioButton("Occlusion Map Only", &render_mode_value, 2);
-        ImGui::RadioButton("Radial Blur Only", &render_mode_value, 3);
+        ImGui::RadioButton("Default Scene Only", &render_mode_value, static_cast<int>(RenderMode::DefaultSceneOnly));
+        ImGui::RadioButton("Occlusion Map Only", &render_mode_value, static_cast<int>(RenderMode::OcclusionMapOnly));
+        ImGui::RadioButton("Radial Blur Only", &render_mode_value, static_cast<int>(RenderMode::RadialBlurOnly));
+        ImGui::RadioButton("Complete Scene", &render_mode_value, static_cast<int>(RenderMode::CompleteRender));
         render_mode_ = static_cast<RenderMode>(render_mode_value);
     }
 
-    // DEBUG
-    static float alpha{0.3f};
-    ImGui::SliderFloat("Alpha", &alpha, 0.0f, 1.0f);
-    post_process_shader_->set_float_uniform("alpha", alpha);
-
-    ImGui::Text("Occlusion Map");
-    ImTextureID imgui_occlusion_map = reinterpret_cast<void*>(static_cast<std::intptr_t>(occlusion_fbo_->color_id()));
-    ImGui::Image(imgui_occlusion_map, ImVec2{200, 200}, ImVec2{0.0f, 0.0f}, ImVec2{1.0f, 1.0f},
-                 ImVec4{1.0f, 1.0f, 1.0f, 1.0f}, ImVec4{1.0f, 1.0f, 1.0f, 0.5f});
     ImGui::End();
 
     ImGui::Render();
