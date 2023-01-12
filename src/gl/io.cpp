@@ -7,13 +7,17 @@
 namespace gl
 {
 
-std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& filename, bool verbose)
+// std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& filename, bool verbose)
+std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& filename, bool verbose)
 {
+    // Cannot concatenate std::string_view, must use std::string
+    const static std::string base_materials_path{"assets/materials/"};
     tinyobj::ObjReaderConfig reader_config;
-    reader_config.mtl_search_path = "assets/";
+    reader_config.mtl_search_path = base_materials_path;
     tinyobj::ObjReader reader;
 
-    if (!reader.ParseFromFile(filename.data(), reader_config))
+    const static std::string base_models_path{"assets/models/"};
+    if (!reader.ParseFromFile(base_models_path + filename, reader_config))
     {
         if (!reader.Error().empty())
         {
@@ -29,7 +33,20 @@ std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& file
 
     auto& attrib = reader.GetAttrib();
     auto& shapes = reader.GetShapes();
-    std::unordered_map<std::string, Mesh> meshes;
+    auto& materials = reader.GetMaterials();
+
+    if (verbose)
+    {
+        std::cout << "Number of materials: " << materials.size() << "\n";
+        for (auto& material : materials)
+        {
+            std::cout << "\tMaterial name: " << material.name << std::endl;
+            std::cout << "\tDiffuse texture name: " << material.diffuse_texname << std::endl;
+        }
+    }
+
+    std::unordered_map<std::string, Model> models;
+    std::cout << "Number of shapes = " << shapes.size() << std::endl;
     for (std::size_t shape_index = 0; const auto& shape : shapes)
     {
         std::vector<float> vertices_data;
@@ -37,7 +54,8 @@ std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& file
         bool has_tex_coords{false};
         std::size_t index_offset{0};
 
-        for (const std::size_t verts_per_face : shape.mesh.num_face_vertices)
+        std::string previous_material_name{materials.empty() ? "" : materials[shape.mesh.material_ids[0]].name};
+        for (std::size_t face_index = 0; const std::size_t verts_per_face : shape.mesh.num_face_vertices)
         {
             for (std::size_t vertex_index = 0; vertex_index < verts_per_face; ++vertex_index)
             {
@@ -67,7 +85,34 @@ std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& file
                 }
             }
 
+            if (!materials.empty())
+            {
+                const auto& current_material = materials[shape.mesh.material_ids[face_index]];
+
+                bool new_mesh{false};
+                if (previous_material_name != current_material.name)
+                {
+                    new_mesh = true;
+                }
+                else if (face_index == shape.mesh.num_face_vertices.size() - 1)
+                {
+                    previous_material_name = current_material.name;
+                    new_mesh = true;
+                }
+
+                if (new_mesh)
+                {
+                    // TODO:
+                    // 1) Create Material here
+                    // 2) Create Model from vertices + Material
+                    // 3) Emplace model at container
+                }
+
+                previous_material_name = current_material.name;
+            }
+
             index_offset += verts_per_face;
+            ++face_index;
         }
 
         std::vector<int> attributes_sizes{3};
@@ -79,10 +124,14 @@ std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& file
         {
             attributes_sizes.emplace_back(2);
         }
-        meshes.emplace(shape.name, Mesh(vertices_data, attributes_sizes));
+
+        Mesh mesh{vertices_data, attributes_sizes};
+        Model model;
+        model.meshes.emplace_back(std::move(mesh));
+        models.emplace(shape.name, std::move(model));
     }
 
-    return meshes;
+    return models;
 }
 
 } // namespace gl

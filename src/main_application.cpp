@@ -53,13 +53,18 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     // clang-format on
 
     // Read and initialize meshes and models
-    auto meshes = gl::read_triangle_mesh("assets/models/uv_sphere.obj");
-    meshes.merge(gl::read_triangle_mesh("assets/models/cube.obj"));
+    /*auto meshes = gl::read_triangle_mesh("uv_sphere.obj");
+    // meshes.merge(gl::read_triangle_mesh("assets/models/cube.obj"));
+    meshes.merge(gl::read_triangle_mesh("sibenik.obj"));
+    meshes.merge(gl::read_triangle_mesh("crimson_cube.obj"));
     for (auto& pair : meshes)
     {
         gl::Model model{.mesh = std::move(pair.second)};
         models_.emplace(pair.first, std::move(model));
-    }
+    }*/
+    models_ = gl::read_triangle_mesh("uv_sphere.obj");
+    models_.merge(gl::read_triangle_mesh("sibenik.obj"));
+    models_.merge(gl::read_triangle_mesh("crimson_cube.obj"));
     models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
     light_.direction = glm::normalize(-models_.at("UVSphere").translation);
 
@@ -92,10 +97,12 @@ void MainApplication::render()
     basic_shader_->use();
     basic_shader_->set_vec3_uniform("color", glm::vec3{0.0f, 0.0f, 0.0f});
     basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
-    models_.at("Cube").mesh.render();
+    // models_.at("Cube").mesh.render();
+    models_.at("Cube").meshes[0].render();
     basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
     basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
-    models_.at("UVSphere").mesh.render();
+    // models_.at("UVSphere").mesh.render();
+    models_.at("UVSphere").meshes[0].render();
     occlusion_fbo_->unbind();
 
     reset_viewport();
@@ -109,10 +116,12 @@ void MainApplication::render()
     blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     blinn_phong_shader_->set_vec3_uniform("model_color", glm::vec3{1.0f, 0.0f, 1.0f});
     blinn_phong_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
-    models_.at("Cube").mesh.render();
+    // models_.at("Cube").mesh.render();
+    models_.at("Cube").meshes[0].render();
     basic_shader_->use();
     basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
-    models_.at("UVSphere").mesh.render();
+    // models_.at("UVSphere").mesh.render();
+    models_.at("UVSphere").meshes[0].render();
 
     /*
     Post-Processing God Rays Render Pass:
