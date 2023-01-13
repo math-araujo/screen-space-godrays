@@ -15,4 +15,12 @@ glm::mat4 Model::transform() const
     return transform_matrix;
 }
 
+void Model::render()
+{
+    for (auto& mesh : meshes)
+    {
+        mesh.render();
+    }
+}
+
 } // namespace gl

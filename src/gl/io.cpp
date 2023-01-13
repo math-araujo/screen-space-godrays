@@ -1,8 +1,10 @@
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <tiny_obj_loader.h>
 
 #include "io.hpp"
+#include "texture.hpp"
 
 namespace gl
 {
@@ -43,16 +45,24 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
             std::cout << "\tMaterial name: " << material.name << std::endl;
             std::cout << "\tDiffuse texture name: " << material.diffuse_texname << std::endl;
         }
+
+        std::cout << "Number of shapes = " << shapes.size() << std::endl;
     }
 
     std::unordered_map<std::string, Model> models;
-    std::cout << "Number of shapes = " << shapes.size() << std::endl;
+    int total_mesh_count{0};
     for (std::size_t shape_index = 0; const auto& shape : shapes)
     {
+        if (verbose)
+        {
+            std::cout << "Shape " << shape_index << ":\n\tName: " << shape.name << std::endl;
+        }
+
         std::vector<float> vertices_data;
         bool has_normals{false};
         bool has_tex_coords{false};
         std::size_t index_offset{0};
+        Model model;
 
         std::string previous_material_name{materials.empty() ? "" : materials[shape.mesh.material_ids[0]].name};
         for (std::size_t face_index = 0; const std::size_t verts_per_face : shape.mesh.num_face_vertices)
@@ -85,12 +95,14 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                 }
             }
 
+            std::string new_material_name;
             if (!materials.empty())
             {
                 const auto& current_material = materials[shape.mesh.material_ids[face_index]];
+                new_material_name = current_material.name;
 
                 bool new_mesh{false};
-                if (previous_material_name != current_material.name)
+                if (previous_material_name != new_material_name)
                 {
                     new_mesh = true;
                 }
@@ -102,32 +114,54 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
 
                 if (new_mesh)
                 {
-                    // TODO:
-                    // 1) Create Material here
-                    // 2) Create Model from vertices + Material
-                    // 3) Emplace model at container
-                }
+                    const static std::string textures_path{"assets/textures/"};
+                    const std::size_t previous_material_index{std::max<std::size_t>(face_index - 1, 0)};
+                    auto texture = create_texture_from_file(
+                        textures_path + materials[shape.mesh.material_ids[previous_material_index]].diffuse_texname);
+                    std::vector<int> attributes_sizes{3};
+                    if (has_normals)
+                    {
+                        attributes_sizes.emplace_back(3);
+                    }
+                    if (has_tex_coords)
+                    {
+                        attributes_sizes.emplace_back(2);
+                    }
 
-                previous_material_name = current_material.name;
+                    Mesh mesh{std::move(vertices_data), std::move(attributes_sizes)};
+                    vertices_data.clear();
+                    model.meshes.emplace_back(std::move(mesh));
+                    model.textures.emplace_back(std::move(texture));
+                }
             }
 
+            previous_material_name = new_material_name;
             index_offset += verts_per_face;
             ++face_index;
         }
 
-        std::vector<int> attributes_sizes{3};
-        if (has_normals)
+        /*
+        If there was no material on the OBJ file, there will be no split based on
+        materials. Hence the vertices_data will not be empty and there will be a single
+        mesh.
+        */
+        if (!vertices_data.empty())
         {
-            attributes_sizes.emplace_back(3);
-        }
-        if (has_tex_coords)
-        {
-            attributes_sizes.emplace_back(2);
-        }
+            assert(materials.empty());
+            std::vector<int> attributes_sizes{3};
+            if (has_normals)
+            {
+                attributes_sizes.emplace_back(3);
+            }
+            if (has_tex_coords)
+            {
+                attributes_sizes.emplace_back(2);
+            }
 
-        Mesh mesh{vertices_data, attributes_sizes};
-        Model model;
-        model.meshes.emplace_back(std::move(mesh));
+            Mesh mesh{std::move(vertices_data), std::move(attributes_sizes)};
+            vertices_data.clear();
+            model.meshes.emplace_back(std::move(mesh));
+        }
         models.emplace(shape.name, std::move(model));
     }
 

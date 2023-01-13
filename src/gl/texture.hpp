@@ -62,6 +62,9 @@ private:
     void generate_mipmap();
 };
 
+Texture create_texture_from_file(std::string_view filename, Texture::Attributes attributes = {},
+                                 bool flip_on_load = true);
+
 } // namespace gl
 
 #include "texture.inl"

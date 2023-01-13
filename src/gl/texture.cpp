@@ -202,4 +202,32 @@ void Texture::load_array_texture(const std::vector<std::string_view>& filenames,
     }
 }
 
+Texture create_texture_from_file(std::string_view filename, Texture::Attributes attributes, bool flip_on_load)
+{
+    int width{0};
+    int height{0};
+    int number_of_channels{0};
+    stbi_set_flip_vertically_on_load(flip_on_load);
+    unsigned char* data = stbi_load(filename.data(), &width, &height, &number_of_channels, 0);
+    assert(data != nullptr);
+    if (number_of_channels == 3)
+    {
+        attributes.pixel_data_format = GL_RGB;
+    }
+    else if (number_of_channels == 1)
+    {
+        attributes.pixel_data_format = GL_RED;
+    }
+    Texture texture{static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), attributes};
+    texture.copy_image(data, width, height);
+    stbi_image_free(data);
+
+    if (flip_on_load)
+    {
+        stbi_set_flip_vertically_on_load(!flip_on_load);
+    }
+
+    return texture;
+}
+
 } // namespace gl
