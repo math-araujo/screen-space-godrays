@@ -54,8 +54,8 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
 
     // Read and initialize models
     models_ = gl::read_triangle_mesh("uv_sphere.obj", true);
-    models_.merge(gl::read_triangle_mesh("sibenik.obj"));
-    models_.merge(gl::read_triangle_mesh("crimson_cube.obj"));
+    models_.merge(gl::read_triangle_mesh("sibenik.obj", true));
+    models_.merge(gl::read_triangle_mesh("crimson_cube.obj", true));
     models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
     light_.direction = glm::normalize(-models_.at("UVSphere").translation);
 
@@ -77,6 +77,7 @@ void MainApplication::render()
 {
     glGetIntegerv(GL_VIEWPORT, current_viewport_.data());
 
+    const glm::mat4& view_projection{camera().view_projection()};
     /*
     Occlusion Pre-Pass Method:
     Render the scene geometry as black and light source with the
@@ -87,10 +88,12 @@ void MainApplication::render()
     occlusion_fbo_->bind();
     basic_shader_->use();
     basic_shader_->set_vec3_uniform("color", glm::vec3{0.0f, 0.0f, 0.0f});
-    basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
+    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("Cube").transform());
     models_.at("Cube").render();
+    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    models_.at("sibenik").render();
     basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
-    basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
+    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
     occlusion_fbo_->unbind();
 
@@ -104,10 +107,12 @@ void MainApplication::render()
     blinn_phong_shader_->use();
     blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     blinn_phong_shader_->set_vec3_uniform("model_color", glm::vec3{1.0f, 0.0f, 1.0f});
-    blinn_phong_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("Cube").transform());
+    blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("Cube").transform());
     models_.at("Cube").render();
+    blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    models_.at("sibenik").render();
     basic_shader_->use();
-    basic_shader_->set_mat4_uniform("mvp", camera().view_projection() * models_.at("UVSphere").transform());
+    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
 
     /*
@@ -145,7 +150,7 @@ void MainApplication::render()
 
     // The light source is a UV Sphere initially centered at origin; the model matrix is responsible
     // for updating it's position in the world space.
-    const glm::vec4 clip_light_position{camera().view_projection() * models_.at("UVSphere").transform() *
+    const glm::vec4 clip_light_position{view_projection * models_.at("UVSphere").transform() *
                                         glm::vec4{0.0f, 0.0f, 0.0f, 1.0f}};
     const glm::vec4 ndc_light_position{clip_light_position / clip_light_position.w};
     const glm::vec4 screen_space_light_position{(ndc_light_position + 1.0f) * 0.5f};
