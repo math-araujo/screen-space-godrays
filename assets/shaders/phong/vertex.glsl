@@ -7,8 +7,9 @@ layout (location = 2) in vec2 in_tex_coordinates;
 uniform mat4 model = mat4(1.0);
 uniform mat4 mvp = mat4(1.0);
 
-out vec3 vertex_normal;
 out vec3 vertex_frag_pos;
+out vec3 vertex_normal;
+out vec2 vertex_tex_coordinates;
 
 void main()
 {
