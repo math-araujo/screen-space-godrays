@@ -17,8 +17,8 @@ public:
     struct Attributes
     {
         GLenum target{GL_TEXTURE_2D};
-        GLint wrap_s{GL_CLAMP_TO_EDGE};
-        GLint wrap_t{GL_CLAMP_TO_EDGE};
+        GLint wrap_s{GL_REPEAT};
+        GLint wrap_t{GL_REPEAT};
         GLint wrap_r{GL_CLAMP_TO_EDGE};
         GLint min_filter{GL_LINEAR};
         GLint mag_filter{GL_LINEAR};

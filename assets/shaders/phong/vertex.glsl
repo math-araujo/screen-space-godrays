@@ -14,6 +14,7 @@ out vec2 vertex_tex_coordinates;
 void main()
 {
     vertex_normal = in_normal;
+    vertex_tex_coordinates = in_tex_coordinates;
     vec4 homogeneous_position = vec4(in_position, 1.0);
     vertex_frag_pos = vec3(model * homogeneous_position);
     gl_Position = mvp * homogeneous_position;

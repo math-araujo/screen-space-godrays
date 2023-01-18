@@ -55,7 +55,6 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     // Read and initialize models
     models_ = gl::read_triangle_mesh("uv_sphere.obj", true);
     models_.merge(gl::read_triangle_mesh("sibenik.obj", true));
-    models_.merge(gl::read_triangle_mesh("crimson_cube.obj", true));
     models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
     light_.direction = glm::normalize(-models_.at("UVSphere").translation);
 
@@ -88,8 +87,6 @@ void MainApplication::render()
     occlusion_fbo_->bind();
     basic_shader_->use();
     basic_shader_->set_vec3_uniform("color", glm::vec3{0.0f, 0.0f, 0.0f});
-    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("Cube").transform());
-    models_.at("Cube").render();
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     models_.at("sibenik").render();
     basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
@@ -106,12 +103,11 @@ void MainApplication::render()
     // Second Render Pass: render scene as usual
     blinn_phong_shader_->use();
     blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
-    blinn_phong_shader_->set_vec3_uniform("model_color", glm::vec3{1.0f, 0.0f, 1.0f});
-    blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("Cube").transform());
-    models_.at("Cube").render();
     blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
     models_.at("sibenik").render();
     basic_shader_->use();
+    basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
 

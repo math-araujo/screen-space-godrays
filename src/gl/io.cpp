@@ -4,6 +4,7 @@
 #include <tiny_obj_loader.h>
 
 #include "io.hpp"
+#include "material.hpp"
 #include "texture.hpp"
 
 namespace gl
@@ -114,10 +115,8 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
 
                 if (new_mesh)
                 {
-                    const static std::string textures_path{"assets/textures/"};
                     const std::size_t previous_material_index{std::max<std::size_t>(face_index - 1, 0)};
-                    auto texture = create_texture_from_file(
-                        textures_path + materials[shape.mesh.material_ids[previous_material_index]].diffuse_texname);
+                    const auto& previous_material = materials[shape.mesh.material_ids[previous_material_index]];
                     std::vector<int> attributes_sizes{3};
                     if (has_normals)
                     {
@@ -130,8 +129,21 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
 
                     Mesh mesh{std::move(vertices_data), std::move(attributes_sizes)};
                     vertices_data.clear();
-                    model.meshes.emplace_back(std::move(mesh));
-                    model.textures.emplace_back(std::move(texture));
+
+                    if (previous_material.diffuse_texname.empty())
+                    {
+                        const glm::vec3 diffuse_color{previous_material.diffuse[0], previous_material.diffuse[1],
+                                                      previous_material.diffuse[2]};
+                        Material material{.diffuse_color{diffuse_color}, .alpha{previous_material.dissolve}};
+                        model.render_data.emplace_back(std::move(mesh), std::move(material));
+                    }
+                    else
+                    {
+                        const static std::string textures_path{"assets/textures/"};
+                        Material material{
+                            .diffuse_map{create_texture_from_file(textures_path + previous_material.diffuse_texname)}};
+                        model.render_data.emplace_back(std::move(mesh), std::move(material));
+                    }
                 }
             }
 
@@ -160,8 +172,9 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
 
             Mesh mesh{std::move(vertices_data), std::move(attributes_sizes)};
             vertices_data.clear();
-            model.meshes.emplace_back(std::move(mesh));
+            model.render_data.emplace_back(std::move(mesh), Material{});
         }
+        std::cout << "Model with " << model.render_data.size() << " meshes" << std::endl;
         models.emplace(shape.name, std::move(model));
     }
 

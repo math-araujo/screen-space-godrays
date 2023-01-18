@@ -4,6 +4,7 @@ project(gl LANGUAGES CXX)
 add_library(gl STATIC
     application.hpp application.cpp
     mesh.hpp mesh.cpp
+    material.hpp
     model.hpp model.cpp
     shader.hpp shader.cpp
     camera.hpp camera.cpp

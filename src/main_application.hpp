@@ -48,9 +48,9 @@ private:
     std::unordered_map<std::string, gl::Model> models_{};
     RenderMode render_mode_{RenderMode::CompleteRender};
     gl::DirectionalLight light_{.direction = glm::vec3{1.0f, 1.0f, 1.0f},
-                                .ambient = glm::vec3{0.2f, 0.0f, 0.2f},
-                                .diffuse = glm::vec3{0.6f, 0.0f, 0.6f},
-                                .specular = glm::vec3{0.2f, 0.0f, 0.2f}};
+                                .ambient = glm::vec3{0.2f, 0.2f, 0.2f},
+                                .diffuse = glm::vec3{0.6f, 0.6f, 0.6f},
+                                .specular = glm::vec3{0.2f, 0.2f, 0.2f}};
     PostprocessingCoefficients coefficients{
         .num_samples = 100, .density = 1.0f, .exposure = 1.0f, .decay = 1.0f, .weight = 0.01f};
     bool apply_radial_blur_{true};
