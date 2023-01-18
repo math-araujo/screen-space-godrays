@@ -36,9 +36,9 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     // Create framebuffer objects
     const std::uint32_t half_width{static_cast<std::uint32_t>(window_width / 2)};
     const std::uint32_t half_height{static_cast<std::uint32_t>(window_height / 2)};
-    occlusion_fbo_ = std::make_unique<gl::Framebuffer>(
-        half_width, half_height, gl::Renderbuffer{half_width, half_height, GL_DEPTH_COMPONENT32},
-        gl::Texture{half_width, half_height, gl::Texture::Attributes{.wrap_s = GL_REPEAT, .wrap_t = GL_REPEAT}});
+    occlusion_fbo_ = std::make_unique<gl::Framebuffer>(half_width, half_height,
+                                                       gl::Renderbuffer{half_width, half_height, GL_DEPTH_COMPONENT32},
+                                                       gl::Texture{half_width, half_height});
 
     // clang-format off
     full_screen_quad_ = std::make_unique<gl::IndexedMesh>(
@@ -55,6 +55,7 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     // Read and initialize models
     models_ = gl::read_triangle_mesh("uv_sphere.obj", true);
     models_.merge(gl::read_triangle_mesh("sibenik.obj", true));
+    models_.at("sibenik").sort_by_texture();
     models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
     light_.direction = glm::normalize(-models_.at("UVSphere").translation);
 
@@ -105,8 +106,10 @@ void MainApplication::render()
     blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
-    models_.at("sibenik").render();
+    models_.at("sibenik").render_meshes_with_texture();
     basic_shader_->use();
+    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    models_.at("sibenik").render_meshes_with_color(*basic_shader_, "color");
     basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
