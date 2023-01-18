@@ -87,10 +87,10 @@ void MainApplication::render()
     */
     occlusion_fbo_->bind();
     basic_shader_->use();
-    basic_shader_->set_vec3_uniform("color", glm::vec3{0.0f, 0.0f, 0.0f});
+    basic_shader_->set_vec4_uniform("color", glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     models_.at("sibenik").render();
-    basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
+    basic_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
     occlusion_fbo_->unbind();
@@ -102,6 +102,7 @@ void MainApplication::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Second Render Pass: render scene as usual
+    // First render opaque objects
     blinn_phong_shader_->use();
     blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
@@ -110,9 +111,14 @@ void MainApplication::render()
     basic_shader_->use();
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     models_.at("sibenik").render_meshes_with_color(*basic_shader_, "color");
-    basic_shader_->set_vec3_uniform("color", glm::vec3{1.0f, 1.0f, 1.0f});
+    basic_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
     basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
+    // Render (semi)transparent objects after opaque objects
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    models_.at("sibenik").render_semitransparent_meshes(*basic_shader_, "color");
 
     /*
     Post-Processing God Rays Render Pass:
@@ -122,7 +128,6 @@ void MainApplication::render()
     and the radial blur.
     */
 
-    glEnable(GL_BLEND);
     switch (render_mode_)
     {
     case RenderMode::DefaultSceneOnly:

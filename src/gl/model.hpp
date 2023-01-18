@@ -35,6 +35,7 @@ public:
     void render();
     void render_meshes_with_texture();
     void render_meshes_with_color(ShaderProgram& shader, const std::string& uniform_color_name);
+    void render_semitransparent_meshes(ShaderProgram& shader, const std::string& uniform_color_name);
     void add_mesh_render_data(Mesh mesh, Material material);
     std::size_t number_of_meshes() const;
 
@@ -48,10 +49,9 @@ public:
 
 private:
     std::vector<MeshRenderData> render_data_;
+    std::vector<MeshRenderData> semitransparent_render_data_;
     bool is_sorted_{false};
     std::size_t mesh_with_texture_index{0};
-    // std::vector<MeshRenderData> opaque_render_data; // TODO
-    // std::vector<MeshRenderData> semitransparent_render_data; // TODO
 };
 
 } // namespace gl

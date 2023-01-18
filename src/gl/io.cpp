@@ -135,7 +135,6 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                         const glm::vec3 diffuse_color{previous_material.diffuse[0], previous_material.diffuse[1],
                                                       previous_material.diffuse[2]};
                         Material material{.diffuse_color{diffuse_color}, .alpha{previous_material.dissolve}};
-                        // model.render_data.emplace_back(std::move(mesh), std::move(material));
                         model.add_mesh_render_data(std::move(mesh), std::move(material));
                     }
                     else
@@ -143,7 +142,6 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                         const static std::string textures_path{"assets/textures/"};
                         Material material{
                             .diffuse_map{create_texture_from_file(textures_path + previous_material.diffuse_texname)}};
-                        // model.render_data.emplace_back(std::move(mesh), std::move(material));
                         model.add_mesh_render_data(std::move(mesh), std::move(material));
                     }
                 }
@@ -174,7 +172,6 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
 
             Mesh mesh{std::move(vertices_data), std::move(attributes_sizes)};
             vertices_data.clear();
-            // model.render_data.emplace_back(std::move(mesh), Material{});
             model.add_mesh_render_data(std::move(mesh), Material{});
         }
         std::cout << "Model with " << model.number_of_meshes() << " meshes" << std::endl;

@@ -60,14 +60,32 @@ void Model::render_meshes_with_color(ShaderProgram& shader, const std::string& u
     for (std::size_t i = 0; i < mesh_with_texture_index; ++i)
     {
         auto& mesh_data = render_data_[i];
-        shader.set_vec3_uniform(uniform_color_name, mesh_data.material.diffuse_color);
+        shader.set_vec4_uniform(uniform_color_name, glm::vec4{mesh_data.material.diffuse_color, 1.0f});
+        mesh_data.mesh.render();
+    }
+}
+
+void Model::render_semitransparent_meshes(ShaderProgram& shader, const std::string& uniform_color_name)
+{
+    for (auto& mesh_data : semitransparent_render_data_)
+    {
+        const float alpha{mesh_data.material.alpha};
+        shader.set_vec4_uniform(uniform_color_name, glm::vec4{mesh_data.material.diffuse_color, alpha});
         mesh_data.mesh.render();
     }
 }
 
 void Model::add_mesh_render_data(Mesh mesh, Material material)
 {
-    render_data_.emplace_back(std::move(mesh), std::move(material));
+    if (material.alpha == 1.0f) // Fully opaque
+    {
+        render_data_.emplace_back(std::move(mesh), std::move(material));
+    }
+    else
+    {
+        semitransparent_render_data_.emplace_back(std::move(mesh), std::move(material));
+    }
+
     is_sorted_ = false;
 }
 
