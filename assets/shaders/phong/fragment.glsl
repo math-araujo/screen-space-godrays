@@ -37,5 +37,7 @@ void main()
     float specular_intensity = pow(max(dot(view_dir, halfway_dir), 0.0), 64.0);
     vec3 specular_component = specular_intensity * light.specular * diffuse_color;
 
-    frag_color = vec4(ambient_component + diffuse_component + specular_component, 1.0);
+    vec3 color = ambient_component + diffuse_component + specular_component;
+    vec3 gamma_corrected_color = pow(color, vec3(1.0 / 2.0));
+    frag_color = vec4(gamma_corrected_color, 1.0);
 }

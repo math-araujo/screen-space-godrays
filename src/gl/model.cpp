@@ -19,19 +19,14 @@ glm::mat4 Model::transform() const
 
 void Model::render()
 {
-    for (std::size_t i = 0; auto& [mesh, material] : render_data_)
+    for (auto& mesh_data : render_data_)
     {
-        if (material.diffuse_map)
-        {
-            material.diffuse_map.value().bind(0);
-        }
-        else
-        {
-            continue; // TODO: Fix rendering of non-textured meshes
-        }
+        mesh_data.mesh.render();
+    }
 
-        mesh.render();
-        ++i;
+    for (auto& mesh_data : semitransparent_render_data_)
+    {
+        mesh_data.mesh.render();
     }
 }
 

@@ -141,7 +141,8 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                     {
                         const static std::string textures_path{"assets/textures/"};
                         Material material{
-                            .diffuse_map{create_texture_from_file(textures_path + previous_material.diffuse_texname)}};
+                            .diffuse_map{create_texture_from_file(textures_path + previous_material.diffuse_texname,
+                                                                  Texture::Attributes{.internal_format = GL_SRGB})}};
                         model.add_mesh_render_data(std::move(mesh), std::move(material));
                     }
                 }
