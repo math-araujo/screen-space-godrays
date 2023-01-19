@@ -112,19 +112,27 @@ Shader load_shader_from_file(std::string_view filepath, Shader::Type type)
 
 std::string process_shader_include(std::string shader_source, std::filesystem::path shader_path)
 {
-    std::string_view pattern = "#include ";
-    auto include_position = shader_source.find(pattern);
-    if (include_position != std::string::npos)
+    /*
+    This functions performs a search for a include directive pattern,
+    such as "#include shader_file".
+    If there's a include directive, the corresponding header (e.g. "shader_file")
+    is read from file and replaces the include directive by the shader file contents.
+    */
+    const std::string_view pattern{"#include "};
+    const std::size_t include_directive_position{shader_source.find(pattern)};
+    if (include_directive_position != std::string::npos)
     {
-        auto file_name_start_pos = include_position + pattern.size();
-        auto end = shader_source.find('\n', file_name_start_pos);
-        std::string filename = shader_source.substr(file_name_start_pos, end - file_name_start_pos - 1);
-        std::filesystem::path include_path{shader_path.parent_path()};
-        include_path.append(filename);
-        std::ifstream shader_file{include_path};
+        const std::size_t include_shader_start_pos{include_directive_position + pattern.size()};
+        const std::size_t include_shader_end_pos{shader_source.find('\n', include_shader_start_pos)};
+        std::string filename =
+            shader_source.substr(include_shader_start_pos, include_shader_end_pos - include_shader_start_pos - 1);
+        std::filesystem::path include_shader_path{shader_path.parent_path()};
+        include_shader_path.append(filename);
+        std::ifstream shader_file{include_shader_path};
         std::stringstream source_code_stream;
         source_code_stream << shader_file.rdbuf();
-        auto include_pattern = shader_source.substr(include_position, end - include_position);
+        auto include_pattern =
+            shader_source.substr(include_directive_position, include_shader_end_pos - include_directive_position);
         return std::regex_replace(shader_source, std::regex(include_pattern), source_code_stream.str());
     }
 
