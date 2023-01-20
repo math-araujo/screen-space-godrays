@@ -55,7 +55,7 @@ void Model::render_meshes_with_color(ShaderProgram& shader, const std::string& u
     for (std::size_t i = 0; i < mesh_with_texture_index; ++i)
     {
         auto& mesh_data = render_data_[i];
-        shader.set_vec4_uniform(uniform_color_name, glm::vec4{mesh_data.material.diffuse_color, 1.0f});
+        shader.set_vec3_uniform(uniform_color_name, mesh_data.material.diffuse_color);
         mesh_data.mesh.render();
     }
 }

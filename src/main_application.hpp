@@ -40,8 +40,9 @@ private:
         float weight;
     };
 
-    std::unique_ptr<gl::ShaderProgram> blinn_phong_shader_{};
-    std::unique_ptr<gl::ShaderProgram> basic_shader_{};
+    std::unique_ptr<gl::ShaderProgram> texture_blinn_phong_shader_{};
+    std::unique_ptr<gl::ShaderProgram> color_blinn_phong_shader_{};
+    std::unique_ptr<gl::ShaderProgram> color_shader_{};
     std::unique_ptr<gl::ShaderProgram> post_process_shader_{};
     std::unique_ptr<gl::Framebuffer> occlusion_fbo_{};
     std::unique_ptr<gl::IndexedMesh> full_screen_quad_{};

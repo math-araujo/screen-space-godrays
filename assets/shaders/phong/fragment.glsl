@@ -16,13 +16,21 @@ struct Light
 
 uniform Light light;
 uniform vec3 view_pos;
-layout (binding = 0) uniform sampler2D diffuse_texture;
+
+#ifdef DIFFUSE_MAP
+layout (binding = 0) uniform sampler2D diffuse_map;
+#else
+uniform vec3 diffuse_color = vec3(1.0, 0.0, 0.0);
+#endif
 
 void main()
 {
     vec3 unit_normal = normalize(vertex_normal);
     vec3 unit_light_dir = normalize(-light.direction);
-    vec3 diffuse_color = texture(diffuse_texture, vertex_tex_coordinates).rgb;
+
+    #ifdef DIFFUSE_MAP
+    vec3 diffuse_color = texture(diffuse_map, vertex_tex_coordinates).rgb;
+    #endif
 
     // Ambient component
     vec3 ambient_component = light.ambient * diffuse_color;

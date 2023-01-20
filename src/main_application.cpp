@@ -21,11 +21,15 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     camera().set_position(glm::vec3{0.0f, 0.0f, 20.0f});
 
     // Create shaders
-    blinn_phong_shader_ = std::make_unique<gl::ShaderProgram>(
+    texture_blinn_phong_shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<gl::ShaderInfo>{
+        {"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
+        {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment, {"DIFFUSE_MAP"}}});
+
+    color_blinn_phong_shader_ = std::make_unique<gl::ShaderProgram>(
         std::initializer_list<gl::ShaderInfo>{{"assets/shaders/phong/vertex.glsl", gl::Shader::Type::Vertex},
                                               {"assets/shaders/phong/fragment.glsl", gl::Shader::Type::Fragment}});
 
-    basic_shader_ = std::make_unique<gl::ShaderProgram>(
+    color_shader_ = std::make_unique<gl::ShaderProgram>(
         std::initializer_list<gl::ShaderInfo>{{"assets/shaders/basic/vertex.glsl", gl::Shader::Type::Vertex},
                                               {"assets/shaders/basic/fragment.glsl", gl::Shader::Type::Fragment}});
 
@@ -60,10 +64,14 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     light_.direction = glm::normalize(-models_.at("UVSphere").translation);
 
     // Set light uniforms
-    blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
-    blinn_phong_shader_->set_vec3_uniform("light.ambient", light_.ambient);
-    blinn_phong_shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
-    blinn_phong_shader_->set_vec3_uniform("light.specular", light_.specular);
+    texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
+    texture_blinn_phong_shader_->set_vec3_uniform("light.ambient", light_.ambient);
+    texture_blinn_phong_shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
+    texture_blinn_phong_shader_->set_vec3_uniform("light.specular", light_.specular);
+    color_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
+    color_blinn_phong_shader_->set_vec3_uniform("light.ambient", light_.ambient);
+    color_blinn_phong_shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
+    color_blinn_phong_shader_->set_vec3_uniform("light.specular", light_.specular);
 
     post_process_shader_->set_bool_uniform("apply_radial_blur", apply_radial_blur_);
     post_process_shader_->set_int_uniform("coefficients.num_samples", coefficients.num_samples);
@@ -86,12 +94,12 @@ void MainApplication::render()
     post-processing phase to gneerate the god rays.
     */
     occlusion_fbo_->bind();
-    basic_shader_->use();
-    basic_shader_->set_vec4_uniform("color", glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
-    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    color_shader_->use();
+    color_shader_->set_vec4_uniform("color", glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
+    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     models_.at("sibenik").render();
-    basic_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
+    color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
+    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
     occlusion_fbo_->unbind();
 
@@ -103,22 +111,25 @@ void MainApplication::render()
 
     // Second Render Pass: render scene as usual
     // First render opaque objects
-    blinn_phong_shader_->use();
-    blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
-    blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    texture_blinn_phong_shader_->use();
+    texture_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
+    texture_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    texture_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
     models_.at("sibenik").render_meshes_with_texture();
-    basic_shader_->use();
-    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    models_.at("sibenik").render_meshes_with_color(*basic_shader_, "color");
-    basic_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
+    color_blinn_phong_shader_->use();
+    color_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
+    color_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    color_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    models_.at("sibenik").render_meshes_with_color(*color_blinn_phong_shader_, "diffuse_color");
+    color_shader_->use();
+    color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
+    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
     models_.at("UVSphere").render();
     // Render (semi)transparent objects after opaque objects
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    basic_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    models_.at("sibenik").render_semitransparent_meshes(*basic_shader_, "color");
+    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
+    models_.at("sibenik").render_semitransparent_meshes(*color_shader_, "color");
 
     /*
     Post-Processing God Rays Render Pass:
