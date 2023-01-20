@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace gl
 {
@@ -46,6 +47,7 @@ struct ShaderInfo
 {
     std::string_view filepath;
     Shader::Type type;
+    std::vector<std::string> define_variables;
 };
 
 class ShaderProgram
@@ -81,9 +83,9 @@ private:
 
 // Auxiliary free functions
 void check_shader_compilation(std::uint32_t shader_id, std::string_view shader_type);
-Shader load_shader_from_file(std::string_view filepath, Shader::Type type);
+Shader load_shader_from_file(const ShaderInfo& shader_info);
 void check_shader_program_link_status(std::uint32_t shader_program_id, std::initializer_list<ShaderInfo> shader_data);
-std::string process_shader_include(std::string shader_source, std::filesystem::path shader_path);
+std::string process_shader_preprocessor_directives(std::string shader_source, const ShaderInfo& shader_info);
 
 template <typename T>
 constexpr std::underlying_type_t<T> to_underlying(T enumerator) noexcept

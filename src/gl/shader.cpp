@@ -78,9 +78,9 @@ ShaderProgram::ShaderProgram(std::initializer_list<ShaderInfo> initializer) : pr
     std::vector<Shader> shaders;
     shaders.reserve(initializer.size());
 
-    for (const auto& [filepath, shader_type] : initializer)
+    for (const ShaderInfo& shader_info : initializer)
     {
-        shaders.emplace_back(load_shader_from_file(filepath, shader_type));
+        shaders.emplace_back(load_shader_from_file(shader_info));
         glAttachShader(program_id_, shaders.back().identifier());
     }
 
@@ -95,29 +95,44 @@ ShaderProgram::ShaderProgram(std::initializer_list<ShaderInfo> initializer) : pr
     retrieve_uniforms();
 }
 
-Shader load_shader_from_file(std::string_view filepath, Shader::Type type)
+Shader load_shader_from_file(const ShaderInfo& shader_info)
 {
-    std::ifstream shader_file{filepath.data()};
+    std::ifstream shader_file{shader_info.filepath.data()};
     if (!shader_file.is_open())
     {
         std::stringstream error_log_stream;
-        error_log_stream << "File " << filepath << " could not be opened";
+        error_log_stream << "File " << shader_info.filepath << " could not be opened";
         throw std::runtime_error(error_log_stream.str());
     }
 
     std::stringstream source_code_stream;
     source_code_stream << shader_file.rdbuf();
-    return Shader{process_shader_include(source_code_stream.str(), std::filesystem::path{filepath}), type};
+    return Shader{process_shader_preprocessor_directives(source_code_stream.str(), shader_info), shader_info.type};
 }
 
-std::string process_shader_include(std::string shader_source, std::filesystem::path shader_path)
+std::string process_shader_preprocessor_directives(std::string shader_source, const ShaderInfo& shader_info)
 {
+    // Injects #define directive
+    std::string define_directives;
+    for (const std::string& define : shader_info.define_variables)
+    {
+        define_directives += "#define " + define + "\n";
+    }
+
+    if (!define_directives.empty())
+    {
+        // The preprocessor "#version" must necessarily be on the first line of the
+        // shader code. Therefore, the define directives must appear after it.
+        const std::size_t version_preprocessor_end_pos{shader_source.find('\n')};
+        shader_source.insert(version_preprocessor_end_pos + 1, define_directives);
+    }
     /*
     This functions performs a search for a include directive pattern,
     such as "#include shader_file".
     If there's a include directive, the corresponding header (e.g. "shader_file")
     is read from file and replaces the include directive by the shader file contents.
     */
+    const std::filesystem::path shader_path{shader_info.filepath};
     const std::string_view pattern{"#include "};
     const std::size_t include_directive_position{shader_source.find(pattern)};
     if (include_directive_position != std::string::npos)
@@ -150,7 +165,7 @@ void check_shader_program_link_status(std::uint32_t shader_program_id, std::init
         std::stringstream stream;
         stream << "Shader program linking error:\n" << error_log.data() << "\nShader Program Files: ";
 
-        for (const auto& [filepath, shader_type] : shader_data)
+        for (const auto& [filepath, shader_type, defines] : shader_data)
         {
             stream << filepath << " ";
         }
