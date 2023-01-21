@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <array>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <numeric>
 #include <tiny_obj_loader.h>
 
 #include "io.hpp"
@@ -51,7 +53,6 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
     }
 
     std::unordered_map<std::string, Model> models;
-    int total_mesh_count{0};
     for (std::size_t shape_index = 0; const auto& shape : shapes)
     {
         if (verbose)
@@ -102,20 +103,26 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                 const auto& current_material = materials[shape.mesh.material_ids[face_index]];
                 new_material_name = current_material.name;
 
+                /* A new mesh is detected when a face with a new material is found,
+                or when we reached the last face of the triangle mesh. If the former
+                case, the last face read from the file belongs to the next mesh,
+                not to the current mesh, and must be saved for usage later.
+                */
                 bool new_mesh{false};
+                bool save_last_face{false};
                 if (previous_material_name != new_material_name)
                 {
                     new_mesh = true;
+                    save_last_face = true;
                 }
                 else if (face_index == shape.mesh.num_face_vertices.size() - 1)
                 {
-                    previous_material_name = current_material.name;
                     new_mesh = true;
                 }
 
                 if (new_mesh)
                 {
-                    const std::size_t previous_material_index{std::max<std::size_t>(face_index - 1, 0)};
+                    const std::size_t previous_material_index{face_index == 0 ? 0 : face_index - 1};
                     const auto& previous_material = materials[shape.mesh.material_ids[previous_material_index]];
                     std::vector<int> attributes_sizes{3};
                     if (has_normals)
@@ -127,24 +134,38 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                         attributes_sizes.emplace_back(2);
                     }
 
+                    std::vector<float> last_face;
+                    if (save_last_face)
+                    {
+                        const int num_attributes{
+                            std::accumulate(attributes_sizes.cbegin(), attributes_sizes.cend(), 0)};
+                        const std::size_t num_elements{verts_per_face * num_attributes};
+                        last_face.reserve(num_elements);
+                        last_face.insert(last_face.end(), vertices_data.end() - num_elements, vertices_data.end());
+                        for (std::size_t i = 0; i < num_elements; ++i)
+                        {
+                            vertices_data.pop_back();
+                        }
+                    }
                     Mesh mesh{std::move(vertices_data), std::move(attributes_sizes)};
                     vertices_data.clear();
+                    vertices_data = std::move(last_face);
 
+                    Material material;
                     if (previous_material.diffuse_texname.empty())
                     {
-                        const glm::vec3 diffuse_color{previous_material.diffuse[0], previous_material.diffuse[1],
-                                                      previous_material.diffuse[2]};
-                        Material material{.diffuse_color{diffuse_color}, .alpha{previous_material.dissolve}};
-                        model.add_mesh_render_data(std::move(mesh), std::move(material));
+                        const glm::vec3 diffuse_color{glm::make_vec3(previous_material.diffuse)};
+                        material.diffuse_color = diffuse_color;
+                        material.alpha = previous_material.dissolve;
                     }
                     else
                     {
                         const static std::string textures_path{"assets/textures/"};
-                        Material material{
-                            .diffuse_map{create_texture_from_file(textures_path + previous_material.diffuse_texname,
-                                                                  Texture::Attributes{.internal_format = GL_SRGB})}};
-                        model.add_mesh_render_data(std::move(mesh), std::move(material));
+                        material.diffuse_map =
+                            create_texture_from_file(textures_path + previous_material.diffuse_texname,
+                                                     Texture::Attributes{.internal_format = GL_SRGB});
                     }
+                    model.add_mesh_render_data(std::move(mesh), std::move(material));
                 }
             }
 
@@ -175,7 +196,12 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
             vertices_data.clear();
             model.add_mesh_render_data(std::move(mesh), Material{});
         }
-        std::cout << "Model with " << model.number_of_meshes() << " meshes" << std::endl;
+
+        if (verbose)
+        {
+            std::cout << "Model with " << model.number_of_meshes() << " meshes" << std::endl;
+        }
+
         models.emplace(shape.name, std::move(model));
     }
 
