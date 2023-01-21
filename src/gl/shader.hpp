@@ -69,9 +69,12 @@ public:
     void set_float_array_uniform(const std::string& uniform_name, const float* value, std::size_t count);
     void set_vec2_uniform(const std::string& uniform_name, float x, float y);
     void set_vec2_uniform(const std::string& uniform_name, const glm::vec2& vector);
+    void set_vec2_array_uniform(const std::string& uniform_name, const std::vector<glm::vec2>& vec2_array);
     void set_vec3_uniform(const std::string& uniform_name, float x, float y, float z);
     void set_vec3_uniform(const std::string& uniform_name, const glm::vec3& vector);
+    void set_vec3_array_uniform(const std::string& uniform_name, const std::vector<glm::vec3>& vec3_array);
     void set_vec4_uniform(const std::string& uniform_name, const glm::vec4& vector);
+    void set_vec4_array_uniform(const std::string& uniform_name, const std::vector<glm::vec4>& vec4_array);
     void set_mat4_uniform(const std::string& uniform_name, const glm::mat4& transform);
 
 private:

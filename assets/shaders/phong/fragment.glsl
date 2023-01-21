@@ -43,7 +43,7 @@ void main()
     vec3 view_dir = normalize(view_pos - vertex_frag_pos);
     vec3 halfway_dir = normalize(unit_light_dir + view_dir);
     float specular_intensity = pow(max(dot(view_dir, halfway_dir), 0.0), 64.0);
-    vec3 specular_component = specular_intensity * light.specular * diffuse_color;
+    vec3 specular_component = specular_intensity * light.specular * vec3(1.0f);
 
     vec3 color = ambient_component + diffuse_component + specular_component;
     vec3 gamma_corrected_color = pow(color, vec3(1.0 / 2.0));
