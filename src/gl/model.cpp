@@ -30,7 +30,15 @@ void Model::render()
     }
 }
 
-void Model::render_meshes_with_texture()
+void Model::render_opaque_meshes()
+{
+    for (auto& mesh_data : render_data_)
+    {
+        mesh_data.mesh.render();
+    }
+}
+
+void Model::render_textured_meshes()
 {
     if (!is_sorted_)
     {
@@ -45,7 +53,7 @@ void Model::render_meshes_with_texture()
     }
 }
 
-void Model::render_meshes_with_color(ShaderProgram& shader, const std::string& uniform_color_name)
+void Model::render_colored_meshes(ShaderProgram& shader, const std::string& uniform_color_name)
 {
     if (!is_sorted_)
     {
@@ -86,7 +94,7 @@ void Model::add_mesh_render_data(Mesh mesh, Material material)
 
 std::size_t Model::number_of_meshes() const
 {
-    return render_data_.size();
+    return render_data_.size() + semitransparent_render_data_.size();
 }
 
 void Model::sort_by_texture()

@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <vector>
 
@@ -18,7 +19,8 @@
 MainApplication::MainApplication(int window_width, int window_height, std::string_view title) :
     gl::Application(window_width, window_height, title)
 {
-    camera().set_position(glm::vec3{0.0f, 0.0f, 20.0f});
+    camera().set_position(glm::vec3{-5.73f, 1.91f, 2.15f});
+    camera().set_pitch_yaw(glm::vec2{3.0f, 84.5});
 
     // Create shaders
     texture_blinn_phong_shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<gl::ShaderInfo>{
@@ -35,7 +37,7 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
 
     post_process_shader_ = std::make_unique<gl::ShaderProgram>(std::initializer_list<gl::ShaderInfo>{
         {"assets/shaders/post_process/vertex.glsl", gl::Shader::Type::Vertex},
-        {"assets/shaders/post_process/fragment.glsl", gl::Shader::Type::Fragment}});
+        {"assets/shaders/post_process/fragment.glsl", gl::Shader::Type::Fragment, {"NUM_LIGHTS 1"}}});
 
     // Create framebuffer objects
     const std::uint32_t half_width{static_cast<std::uint32_t>(window_width / 2)};
@@ -57,11 +59,13 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     // clang-format on
 
     // Read and initialize models
-    models_ = gl::read_triangle_mesh("uv_sphere.obj", true);
+    models_ = gl::read_triangle_mesh("uv_sphere.obj");
+    models_.merge(gl::read_triangle_mesh("arclight.obj"));
     models_.merge(gl::read_triangle_mesh("sibenik.obj", true));
     models_.at("sibenik").sort_by_texture();
     models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
-    light_.direction = glm::normalize(-models_.at("UVSphere").translation);
+    models_.at("arclight").scale = glm::vec3{1.6f, 2.0f, 1.5f};
+    models_.at("arclight").translation = glm::vec3{18.5f, 10.0f, 6.0f};
 
     // Set light uniforms
     texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
@@ -84,7 +88,6 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
 void MainApplication::render()
 {
     glGetIntegerv(GL_VIEWPORT, current_viewport_.data());
-
     const glm::mat4& view_projection{camera().view_projection()};
     /*
     Occlusion Pre-Pass Method:
@@ -97,34 +100,42 @@ void MainApplication::render()
     color_shader_->use();
     color_shader_->set_vec4_uniform("color", glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
     color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    models_.at("sibenik").render();
+    models_.at("sibenik").render_opaque_meshes();
     color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
-    models_.at("UVSphere").render();
+    std::vector<gl::Model*> light_models{&models_.at("arclight")};
+    for (auto& light : light_models)
+    {
+        color_shader_->set_mat4_uniform("mvp", view_projection * light->transform());
+        light->render();
+    }
     occlusion_fbo_->unbind();
 
     reset_viewport();
 
     // Clear window with specified color
-    glClearColor(0.1f, 0.1f, 0.4f, 1.0f);
+    glClearColor(0.05f, 0.0f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Second Render Pass: render scene as usual
     // First render opaque objects
     texture_blinn_phong_shader_->use();
+    // TODO: maybe refactor "view_pos", "mvp" and "model" as UBOs to avoid sending the same data to the GPU
     texture_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     texture_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     texture_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
-    models_.at("sibenik").render_meshes_with_texture();
+    models_.at("sibenik").render_textured_meshes();
     color_blinn_phong_shader_->use();
     color_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     color_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     color_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
-    models_.at("sibenik").render_meshes_with_color(*color_blinn_phong_shader_, "diffuse_color");
+    models_.at("sibenik").render_colored_meshes(*color_blinn_phong_shader_, "diffuse_color");
     color_shader_->use();
     color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("UVSphere").transform());
-    models_.at("UVSphere").render();
+    for (auto& light : light_models)
+    {
+        color_shader_->set_mat4_uniform("mvp", view_projection * light->transform());
+        light->render();
+    }
     // Render (semi)transparent objects after opaque objects
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -163,14 +174,19 @@ void MainApplication::render()
     post_process_shader_->set_bool_uniform("apply_radial_blur", apply_radial_blur_);
     occlusion_fbo_->bind_color(0);
 
-    // The light source is a UV Sphere initially centered at origin; the model matrix is responsible
+    // Each light source is initially centered at origin; the model matrix is responsible
     // for updating it's position in the world space.
-    const glm::vec4 clip_light_position{view_projection * models_.at("UVSphere").transform() *
-                                        glm::vec4{0.0f, 0.0f, 0.0f, 1.0f}};
-    const glm::vec4 ndc_light_position{clip_light_position / clip_light_position.w};
-    const glm::vec4 screen_space_light_position{(ndc_light_position + 1.0f) * 0.5f};
-    post_process_shader_->set_vec4_uniform("screen_space_light_pos", screen_space_light_position);
+    std::vector<glm::vec4> light_positions;
+    for (auto& light : light_models)
+    {
+        const glm::vec4 clip_light_position{view_projection * light->transform() * glm::vec4{0.0f, 0.0f, 0.0f, 1.0f}};
+        const glm::vec4 ndc_light_position{clip_light_position / clip_light_position.w};
+        const glm::vec4 screen_space_light_position{(ndc_light_position + 1.0f) * 0.5f};
+        light_positions.emplace_back(screen_space_light_position);
+    }
+    post_process_shader_->set_vec4_array_uniform("screen_space_light_positions[0]", light_positions);
     full_screen_quad_->render();
+
     glDisable(GL_BLEND);
 
     // Render GUI
@@ -196,6 +212,12 @@ void MainApplication::render_imgui_editor()
         ImGui::RadioButton("Radial Blur Only", &render_mode_value, static_cast<int>(RenderMode::RadialBlurOnly));
         ImGui::RadioButton("Complete Scene", &render_mode_value, static_cast<int>(RenderMode::CompleteRender));
         render_mode_ = static_cast<RenderMode>(render_mode_value);
+    }
+    if (ImGui::InputFloat3("Light Dir", glm::value_ptr(models_.at("UVSphere").translation)))
+    {
+        light_.direction = glm::normalize(-models_.at("UVSphere").translation);
+        texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
+        color_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
     }
 
     ImGui::End();

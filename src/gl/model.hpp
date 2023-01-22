@@ -32,9 +32,12 @@ public:
     glm::vec3 translation{0.0f, 0.0f, 0.0f};
 
     glm::mat4 transform() const;
+    // Render all meshes
     void render();
-    void render_meshes_with_texture();
-    void render_meshes_with_color(ShaderProgram& shader, const std::string& uniform_color_name);
+    // Render all opaque meshes
+    void render_opaque_meshes();
+    void render_textured_meshes();
+    void render_colored_meshes(ShaderProgram& shader, const std::string& uniform_color_name);
     void render_semitransparent_meshes(ShaderProgram& shader, const std::string& uniform_color_name);
     void add_mesh_render_data(Mesh mesh, Material material);
     std::size_t number_of_meshes() const;

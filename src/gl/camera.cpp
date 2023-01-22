@@ -122,6 +122,17 @@ void FPSCamera::set_position(glm::vec3 new_position)
     position_update_ = true;
 }
 
+void FPSCamera::set_pitch_yaw(glm::vec2 new_pitch_yaw)
+{
+    euler_angles_ = new_pitch_yaw;
+    update_orientation();
+}
+
+const glm::vec2& FPSCamera::get_pitch_yaw() const
+{
+    return euler_angles_;
+}
+
 void FPSCamera::move_position(glm::vec3 delta_position)
 {
     position_ += delta_position;

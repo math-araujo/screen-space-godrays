@@ -52,6 +52,8 @@ public:
     const glm::vec3& position() const;
     void set_position(float x, float y, float z);
     void set_position(glm::vec3 new_position);
+    void set_pitch_yaw(glm::vec2 new_pitch_yaw);
+    const glm::vec2& get_pitch_yaw() const;
     void move_position(glm::vec3 delta_position);
     void invert_pitch();
     const glm::mat4& view();
