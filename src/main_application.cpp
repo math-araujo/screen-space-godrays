@@ -119,7 +119,7 @@ void MainApplication::render()
     // Second Render Pass: render scene as usual
     // First render opaque objects
     texture_blinn_phong_shader_->use();
-    // TODO: maybe refactor "view_pos", "mvp" and "model" as UBOs to avoid sending the same data to the GPU
+    // TODO: refactor "view_pos", "mvp" and "model" as UBOs to avoid sending the same data to the GPU
     texture_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     texture_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     texture_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
