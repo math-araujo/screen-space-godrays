@@ -206,12 +206,45 @@ void MainApplication::render_imgui_editor()
     int render_mode_value{static_cast<int>(render_mode_)};
     if (ImGui::TreeNode("Render Mode"))
     {
-        ImGui::TreePop();
         ImGui::RadioButton("Default Scene Only", &render_mode_value, static_cast<int>(RenderMode::DefaultSceneOnly));
         ImGui::RadioButton("Occlusion Map Only", &render_mode_value, static_cast<int>(RenderMode::OcclusionMapOnly));
         ImGui::RadioButton("Radial Blur Only", &render_mode_value, static_cast<int>(RenderMode::RadialBlurOnly));
         ImGui::RadioButton("Complete Scene", &render_mode_value, static_cast<int>(RenderMode::CompleteRender));
         render_mode_ = static_cast<RenderMode>(render_mode_value);
+        ImGui::TreePop();
+    }
+
+    // See Mitchell "Volumetric Light Scattering as a Post-Process" for a detailed explanation
+    // of each post-processing parameter.
+    if (ImGui::TreeNode("Post-processing Coefficients"))
+    {
+        if (ImGui::InputInt("Number of samples", &coefficients.num_samples))
+        {
+            coefficients.num_samples = std::clamp(coefficients.num_samples, 0, 512);
+            post_process_shader_->set_int_uniform("coefficients.num_samples", coefficients.num_samples);
+        }
+
+        if (ImGui::SliderFloat("Density", &coefficients.density, 0.0f, 2.0f))
+        {
+            post_process_shader_->set_float_uniform("coefficients.density", coefficients.density);
+        }
+
+        if (ImGui::SliderFloat("Exposure", &coefficients.exposure, 0.0f, 10.0f))
+        {
+            post_process_shader_->set_float_uniform("coefficients.exposure", coefficients.exposure);
+        }
+
+        if (ImGui::SliderFloat("Decay", &coefficients.decay, 0.0f, 1.0f))
+        {
+            post_process_shader_->set_float_uniform("coefficients.decay", coefficients.decay);
+        }
+
+        if (ImGui::SliderFloat("Weight", &coefficients.weight, 0.0f, 0.1f))
+        {
+            post_process_shader_->set_float_uniform("coefficients.weight", coefficients.weight);
+        }
+
+        ImGui::TreePop();
     }
     if (ImGui::InputFloat3("Light Dir", glm::value_ptr(models_.at("UVSphere").translation)))
     {
