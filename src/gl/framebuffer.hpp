@@ -36,6 +36,8 @@ public:
     std::uint32_t depth_id() const;
     void bind_color(std::uint32_t texture_unit);
     void bind_depth_texture(std::uint32_t texture_unit);
+    void set_depth_border(const std::array<float, 4>& border);
+    void set_color_border(const std::array<float, 4>& border);
 
 private:
     inline static const std::array<float, 4> clear_color_{0.0f, 0.0f, 0.0f, 1.0f};

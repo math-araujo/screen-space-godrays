@@ -29,8 +29,8 @@ void Framebuffer::initialize(bool use_depth_renderbuffer)
     }
     else
     {
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
+        glNamedFramebufferDrawBuffer(id_, GL_NONE);
+        glNamedFramebufferReadBuffer(id_, GL_NONE);
     }
 
     if (use_depth_renderbuffer)
@@ -124,6 +124,21 @@ void Framebuffer::bind_color(std::uint32_t texture_unit)
 void Framebuffer::bind_depth_texture(std::uint32_t texture_unit)
 {
     std::get<Texture>(depth_).bind(texture_unit);
+}
+
+void Framebuffer::set_depth_border(const std::array<float, 4>& border)
+{
+    if (!std::holds_alternative<Texture>(depth_))
+    {
+        throw std::runtime_error("Cannot set wrapping mode for non-texture depth");
+    }
+
+    std::get<Texture>(depth_).set_border_color(border);
+}
+
+void Framebuffer::set_color_border(const std::array<float, 4>& border)
+{
+    color_.value().set_border_color(border);
 }
 
 } // namespace gl

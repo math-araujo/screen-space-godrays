@@ -53,7 +53,8 @@ Texture::Texture(std::uint32_t width, std::uint32_t height) : width_{width}, hei
     initialize();
 }
 
-Texture::Texture(Texture&& other) noexcept : width_{other.width_}, height_{other.height_}, id_{other.id_}
+Texture::Texture(Texture&& other) noexcept :
+    width_{other.width_}, height_{other.height_}, attributes_{other.attributes_}, id_{other.id_}
 {
     other.id_ = 0;
 }
@@ -62,6 +63,7 @@ Texture& Texture::operator=(Texture&& other) noexcept
 {
     std::swap(width_, other.width_);
     std::swap(height_, other.height_);
+    std::swap(attributes_, other.attributes_);
     std::swap(id_, other.id_);
     return *this;
 }
@@ -94,6 +96,16 @@ std::uint32_t Texture::width() const
 std::uint32_t Texture::height() const
 {
     return height_;
+}
+
+void Texture::set_border_color(const std::array<float, 4> border_color)
+{
+    if (attributes_.wrap_s != GL_CLAMP_TO_BORDER || attributes_.wrap_t != GL_CLAMP_TO_BORDER)
+    {
+        throw std::invalid_argument("Texture wrapping mode is not set to clamp to border");
+    }
+
+    glTextureParameterfv(id_, GL_TEXTURE_BORDER_COLOR, border_color.data());
 }
 
 void Texture::copy_image(std::string_view filename, bool flip_on_load)

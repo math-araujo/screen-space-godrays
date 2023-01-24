@@ -1,6 +1,7 @@
 #ifndef TEXTURE_HPP
 #define TEXTURE_HPP
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -22,7 +23,9 @@ public:
         GLint wrap_r{GL_CLAMP_TO_EDGE};
         GLint min_filter{GL_LINEAR};
         GLint mag_filter{GL_LINEAR};
+        // interal_format describes how the data will be stored at GPU (number of channels and data type)
         GLenum internal_format{GL_RGBA8};
+        // pixel_data_format and pixel_data_type describes how the data is stored at client side
         GLenum pixel_data_format{GL_RGBA};
         GLenum pixel_data_type{GL_UNSIGNED_BYTE};
         bool generate_mipmap{false};
@@ -50,6 +53,7 @@ public:
     std::uint32_t id() const;
     std::uint32_t width() const;
     std::uint32_t height() const;
+    void set_border_color(const std::array<float, 4> border_color);
 
 private:
     std::uint32_t width_;
