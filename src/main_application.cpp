@@ -10,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
+#include <optional>
 #include <vector>
 
 #include "gl/io.hpp"
@@ -39,12 +40,26 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
         {"assets/shaders/post_process/vertex.glsl", gl::Shader::Type::Vertex},
         {"assets/shaders/post_process/fragment.glsl", gl::Shader::Type::Fragment, {"NUM_LIGHTS 1"}}});
 
+    shadow_map_shader_ = std::make_unique<gl::ShaderProgram>(
+        std::initializer_list<gl::ShaderInfo>{{"assets/shaders/shadow_map/vertex.glsl", gl::Shader::Type::Vertex},
+                                              {"assets/shaders/shadow_map/fragment.glsl", gl::Shader::Type::Fragment}});
     // Create framebuffer objects
     const std::uint32_t half_width{static_cast<std::uint32_t>(window_width / 2)};
     const std::uint32_t half_height{static_cast<std::uint32_t>(window_height / 2)};
     occlusion_fbo_ = std::make_unique<gl::Framebuffer>(half_width, half_height,
                                                        gl::Renderbuffer{half_width, half_height, GL_DEPTH_COMPONENT32},
                                                        gl::Texture{half_width, half_height});
+
+    gl::Texture shadow_depth_map{1024, 1024,
+                                 gl::Texture::Attributes{.wrap_s = GL_CLAMP_TO_BORDER,
+                                                         .wrap_t = GL_CLAMP_TO_BORDER,
+                                                         .min_filter = GL_NEAREST,
+                                                         .mag_filter = GL_NEAREST,
+                                                         .internal_format = GL_DEPTH_COMPONENT32F,
+                                                         .pixel_data_format = GL_DEPTH_COMPONENT,
+                                                         .pixel_data_type = GL_FLOAT}};
+    shadow_map_fbo_ = std::make_unique<gl::Framebuffer>(1024, 1024, std::move(shadow_depth_map), std::nullopt);
+    shadow_map_fbo_->set_depth_border({1.0f, 1.0f, 1.0f, 1.0f});
 
     // clang-format off
     full_screen_quad_ = std::make_unique<gl::IndexedMesh>(
@@ -61,9 +76,10 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     // Read and initialize models
     models_ = gl::read_triangle_mesh("uv_sphere.obj");
     models_.merge(gl::read_triangle_mesh("arclight.obj"));
-    models_.merge(gl::read_triangle_mesh("sibenik.obj", true));
+    models_.merge(gl::read_triangle_mesh("sibenik.obj"));
     models_.at("sibenik").sort_by_texture();
-    models_.at("UVSphere").translation = glm::vec3{0.0f, 5.0f, -50.0f};
+    light_.direction = glm::vec3{17.143f, 6.857f, 4.225f};
+    models_.at("UVSphere").translation = light_.direction;
     models_.at("arclight").scale = glm::vec3{1.6f, 2.0f, 1.5f};
     models_.at("arclight").translation = glm::vec3{18.5f, 10.0f, 6.0f};
 
@@ -72,10 +88,12 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     texture_blinn_phong_shader_->set_vec3_uniform("light.ambient", light_.ambient);
     texture_blinn_phong_shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
     texture_blinn_phong_shader_->set_vec3_uniform("light.specular", light_.specular);
+    texture_blinn_phong_shader_->set_float_uniform("bias", shadow_map_parameters_.bias);
     color_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
     color_blinn_phong_shader_->set_vec3_uniform("light.ambient", light_.ambient);
     color_blinn_phong_shader_->set_vec3_uniform("light.diffuse", light_.diffuse);
     color_blinn_phong_shader_->set_vec3_uniform("light.specular", light_.specular);
+    color_blinn_phong_shader_->set_float_uniform("bias", shadow_map_parameters_.bias);
 
     post_process_shader_->set_bool_uniform("apply_radial_blur", apply_radial_blur_);
     post_process_shader_->set_int_uniform("coefficients.num_samples", coefficients.num_samples);
@@ -83,12 +101,15 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     post_process_shader_->set_float_uniform("coefficients.exposure", coefficients.exposure);
     post_process_shader_->set_float_uniform("coefficients.decay", coefficients.decay);
     post_process_shader_->set_float_uniform("coefficients.weight", coefficients.weight);
+
+    shadow_map_parameters_.set_projection();
 }
 
 void MainApplication::render()
 {
     glGetIntegerv(GL_VIEWPORT, current_viewport_.data());
     const glm::mat4& view_projection{camera().view_projection()};
+
     /*
     Occlusion Pre-Pass Method:
     Render the scene geometry as black and light source with the
@@ -109,7 +130,6 @@ void MainApplication::render()
         light->render();
     }
     occlusion_fbo_->unbind();
-
     reset_viewport();
 
     // Clear window with specified color
@@ -117,17 +137,33 @@ void MainApplication::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Second Render Pass: render scene as usual
+    // Shadow map render pass
+    const glm::mat4 light_view{
+        glm::lookAt(models_.at("UVSphere").translation, shadow_map_parameters_.target, glm::vec3{0.0f, 1.0f, 0.0f})};
+    const glm::mat4 light_space_transform{shadow_map_parameters_.light_projection * light_view};
+    shadow_map_fbo_->bind();
+    shadow_map_shader_->use();
+    shadow_map_shader_->set_mat4_uniform("light_space_transform", light_space_transform);
+    shadow_map_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    models_.at("sibenik").render_opaque_meshes();
+    shadow_map_fbo_->unbind();
+    reset_viewport();
+
     // First render opaque objects
     texture_blinn_phong_shader_->use();
-    // TODO: refactor "view_pos", "mvp" and "model" as UBOs to avoid sending the same data to the GPU
+    // TODO: refactor "view_pos", "mvp", "model" and "light_space_transform" as UBOs to avoid sending the same data to
+    // the GPU
     texture_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     texture_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     texture_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    texture_blinn_phong_shader_->set_mat4_uniform("light_space_transform", light_space_transform);
+    shadow_map_fbo_->bind_depth_texture(1);
     models_.at("sibenik").render_textured_meshes();
     color_blinn_phong_shader_->use();
     color_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
     color_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
     color_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    color_blinn_phong_shader_->set_mat4_uniform("light_space_transform", light_space_transform);
     models_.at("sibenik").render_colored_meshes(*color_blinn_phong_shader_, "diffuse_color");
     color_shader_->use();
     color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
@@ -186,11 +222,16 @@ void MainApplication::render()
     }
     post_process_shader_->set_vec4_array_uniform("screen_space_light_positions[0]", light_positions);
     full_screen_quad_->render();
-
     glDisable(GL_BLEND);
 
     // Render GUI
     render_imgui_editor();
+}
+
+void MainApplication::ShadowMapParameters::set_projection()
+{
+    light_projection =
+        glm::ortho(-frustum_dimension, frustum_dimension, -frustum_dimension, frustum_dimension, near_plane, far_plane);
 }
 
 void MainApplication::render_imgui_editor()
@@ -246,12 +287,45 @@ void MainApplication::render_imgui_editor()
 
         ImGui::TreePop();
     }
-    if (ImGui::InputFloat3("Light Dir", glm::value_ptr(models_.at("UVSphere").translation)))
+
+    if (ImGui::TreeNode("Shadow Mapping Parameters"))
     {
-        light_.direction = glm::normalize(-models_.at("UVSphere").translation);
+        if (ImGui::SliderFloat("Near plane", &shadow_map_parameters_.near_plane, 0.0f, 2.0f))
+        {
+            shadow_map_parameters_.set_projection();
+        }
+
+        if (ImGui::SliderFloat("Far plane", &shadow_map_parameters_.far_plane, 2.0f, 200.0f))
+        {
+            shadow_map_parameters_.set_projection();
+        }
+
+        if (ImGui::SliderFloat("Frustum Dimensions", &shadow_map_parameters_.frustum_dimension, 1.0f, 50.0f))
+        {
+            shadow_map_parameters_.set_projection();
+        }
+
+        if (ImGui::SliderFloat("Shadow Bias", &shadow_map_parameters_.bias, 0.001f, 0.01f))
+        {
+            texture_blinn_phong_shader_->set_float_uniform("bias", shadow_map_parameters_.bias);
+            color_blinn_phong_shader_->set_float_uniform("bias", shadow_map_parameters_.bias);
+        }
+
+        ImGui::SliderFloat3("Target position (lookAt)", glm::value_ptr(shadow_map_parameters_.target), -10.0f, 10.0f);
+
+        ImGui::TreePop();
+    }
+
+    if (ImGui::SliderFloat3("Light Direction", glm::value_ptr(light_.direction), -20.0f, 20.0f))
+    {
+        models_.at("UVSphere").translation = light_.direction;
         texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
         color_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
     }
+
+    ImTextureID imgui_texture_id = reinterpret_cast<void*>(static_cast<std::intptr_t>(shadow_map_fbo_->depth_id()));
+    ImGui::Image(imgui_texture_id, ImVec2{200, 200}, ImVec2{0.0f, 0.0f}, ImVec2{1.0f, 1.0f},
+                 ImVec4{1.0f, 1.0f, 1.0f, 1.0f}, ImVec4{1.0f, 1.0f, 1.0f, 0.5f});
 
     ImGui::End();
 
