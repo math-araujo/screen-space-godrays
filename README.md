@@ -1,14 +1,37 @@
 # Screen Space God Rays
 
-(WIP) Implementation of the paper "Volumetric Light Scattering as a Post-Process" using C++20 and OpenGL 4.5.
+| |
+| :---: 
+| ![Scene](docs/gifs/main.gif?raw=True) <br/> GIF showing the Sibenik cathedral with screen space god rays and shadow mapping |
 
-First results with the technique on a toy scene aka "minimum viable scene":
+This project is an implementation of the paper ["Volumetric Light Scattering as a Post-Process"](https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-13-volumetric-light-scattering-post-process) using C++20 and OpenGL 4.5. In essence, the technique consists of three rendering passes: 
 
-![Toy Scene showing Screen Space God Rays](docs/images/toy-scene-1.png?raw=True)
+1) an occlusion pre-pass renders to a framebuffer the light sources with their default colors and the occluding geometry as black;
+
+2) the default scene is rendered as usual (this pass can actually be divided into more than one sub-pass e.g. a sub-pass to render a shadow map and a sub-pass to render the scene itself);
+
+3) a radial blur is applied to the occlusion framebuffer, and the result is blended with the image generated at the second render pass.
+
+
+| | | | |
+| :---: | :---: | :---: | :---: |
+| ![First Pass](docs/images/first_pass.png?raw=True) <br/> First Pass: <br/> Occlusion Map | ![Second Pass](docs/images/second_pass.png?raw=True) <br/> Second Pass: <br/> Default scene | ![Third Pass](docs/images/third_pass.png?raw=True) <br/> Third Pass: <br/> Radial Blur | ![Result](docs/images/result.png?raw=True) <br/> Third Pass: <br/> Result |
+
+The project is configured such that the user can switch between different render modes and visualize the first, second and third render passes independently, as well as the final result, as can be seen above.
+
+Check the [Build section](https://github.com/math-araujo/procedural-terrain-generation#build) for instructions on how to build the project.
 
 ## Features
 
-TODO
+* God rays as a post-processing effect to approximate volumetric light scattering, including support for multiple light sources.
+
+* User interface provided by Dear ImGui, exposing post-processing coefficients, shadow map parameters and a switch between different render modes.
+
+* Loading of triangle meshes from Wavefront files using `tinyobjloader`, including multiple meshes per file and meshes with multiple material files.
+
+* Support for blending of ordered semi-transparent objects (e.g. Sibenik cathedral's windows).
+
+* Basic directional shadow mapping, including percentage-closer filtering (PCF).
 
 ## Gallery
 
