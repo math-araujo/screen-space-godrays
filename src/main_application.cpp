@@ -109,6 +109,9 @@ void MainApplication::render()
 {
     glGetIntegerv(GL_VIEWPORT, current_viewport_.data());
     const glm::mat4& view_projection{camera().view_projection()};
+    auto& sibenik = models_.at("sibenik");
+    auto& arclight = models_.at("arclight");
+    auto& uv_sphere = models_.at("UVSphere");
 
     /*
     Occlusion Pre-Pass Method:
@@ -120,10 +123,10 @@ void MainApplication::render()
     occlusion_fbo_->bind();
     color_shader_->use();
     color_shader_->set_vec4_uniform("color", glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
-    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    models_.at("sibenik").render_opaque_meshes();
+    color_shader_->set_mat4_uniform("mvp", view_projection * sibenik.transform());
+    sibenik.render_opaque_meshes();
     color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-    std::vector<gl::Model*> light_models{&models_.at("arclight")};
+    std::vector<gl::Model*> light_models{&arclight};
     for (auto& light : light_models)
     {
         color_shader_->set_mat4_uniform("mvp", view_projection * light->transform());
@@ -139,13 +142,13 @@ void MainApplication::render()
     // Second Render Pass: render scene as usual
     // Shadow map render pass
     const glm::mat4 light_view{
-        glm::lookAt(models_.at("UVSphere").translation, shadow_map_parameters_.target, glm::vec3{0.0f, 1.0f, 0.0f})};
+        glm::lookAt(uv_sphere.translation, shadow_map_parameters_.target, glm::vec3{0.0f, 1.0f, 0.0f})};
     const glm::mat4 light_space_transform{shadow_map_parameters_.light_projection * light_view};
     shadow_map_fbo_->bind();
     shadow_map_shader_->use();
     shadow_map_shader_->set_mat4_uniform("light_space_transform", light_space_transform);
-    shadow_map_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
-    models_.at("sibenik").render_opaque_meshes();
+    shadow_map_shader_->set_mat4_uniform("model", sibenik.transform());
+    sibenik.render_opaque_meshes();
     shadow_map_fbo_->unbind();
     reset_viewport();
 
@@ -154,17 +157,17 @@ void MainApplication::render()
     // TODO: refactor "view_pos", "mvp", "model" and "light_space_transform" as UBOs to avoid sending the same data to
     // the GPU
     texture_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
-    texture_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    texture_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    texture_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * sibenik.transform());
+    texture_blinn_phong_shader_->set_mat4_uniform("model", sibenik.transform());
     texture_blinn_phong_shader_->set_mat4_uniform("light_space_transform", light_space_transform);
     shadow_map_fbo_->bind_depth_texture(1);
-    models_.at("sibenik").render_textured_meshes();
+    sibenik.render_textured_meshes();
     color_blinn_phong_shader_->use();
     color_blinn_phong_shader_->set_vec3_uniform("view_pos", camera().position());
-    color_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    color_blinn_phong_shader_->set_mat4_uniform("model", models_.at("sibenik").transform());
+    color_blinn_phong_shader_->set_mat4_uniform("mvp", view_projection * sibenik.transform());
+    color_blinn_phong_shader_->set_mat4_uniform("model", sibenik.transform());
     color_blinn_phong_shader_->set_mat4_uniform("light_space_transform", light_space_transform);
-    models_.at("sibenik").render_colored_meshes(*color_blinn_phong_shader_, "diffuse_color");
+    sibenik.render_colored_meshes(*color_blinn_phong_shader_, "diffuse_color");
     color_shader_->use();
     color_shader_->set_vec4_uniform("color", glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
     for (auto& light : light_models)
@@ -175,8 +178,8 @@ void MainApplication::render()
     // Render (semi)transparent objects after opaque objects
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    color_shader_->set_mat4_uniform("mvp", view_projection * models_.at("sibenik").transform());
-    models_.at("sibenik").render_semitransparent_meshes(*color_shader_, "color");
+    color_shader_->set_mat4_uniform("mvp", view_projection * sibenik.transform());
+    sibenik.render_semitransparent_meshes(*color_shader_, "color");
 
     /*
     Post-Processing God Rays Render Pass:
