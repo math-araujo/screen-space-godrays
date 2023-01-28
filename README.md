@@ -19,7 +19,7 @@ This project is an implementation of the paper ["Volumetric Light Scattering as 
 
 The project is configured such that the user can switch between different render modes and visualize the first, second and third render passes independently, as well as the final result, as can be seen above.
 
-Check the [Build section](https://github.com/math-araujo/procedural-terrain-generation#build) for instructions on how to build the project.
+Check the [Gallery section](https://github.com/math-araujo/screen-space-godrays/#gallery) for more images/GIFs and the [Build section](https://github.com/math-araujo/screen-space-godrays/#build) for instructions on how to build the project.
 
 ## Features
 
@@ -35,7 +35,22 @@ Check the [Build section](https://github.com/math-araujo/procedural-terrain-gene
 
 ## Gallery
 
-TODO
+In the image below you can see the result of the post-processing effect on one of the main circular windows of the Sibenik cathedral:
+
+![Circular Window with Godrays](docs/images/circular_godray.png?raw=True)
+
+As a plus, by positioning the light source in the circular window, I liked the effect of the window's projected shadows over the cathedral floor:
+
+![Circular Window Shadows](docs/images/circular_shadow.png?raw=True)
+
+The image below shows the post-processing parameters that can be changed via the user interface:
+
+![User Interface to control post-processing parameters](docs/images/gui_godray.png?raw=True)
+
+Here's one image with the light source positioned at the top window of the cathedral:
+
+![Tower Window with Godrays](docs/images/tower_godray.png?raw=True)
+
 
 ## Build
 
@@ -60,6 +75,8 @@ cmake --preset=default-unix
 cmake --build build
 
 ```
+
+Feel free to open an issue should any problem arise. 
 
 ## Controls
 
