@@ -65,7 +65,7 @@ git clone https://github.com/math-araujo/screen-space-godrays
 cd screen-space-godrays
 
 # On Windows + MSVC
-cmake --preset=default
+cmake --preset=msvc
 
 cmake --build build --config Release
 
