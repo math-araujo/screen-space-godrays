@@ -18,7 +18,6 @@
 #include "framebuffer.hpp"
 #include "mesh.hpp"
 #include "shader.hpp"
-#include "skybox.hpp"
 #include "texture.hpp"
 
 namespace gl

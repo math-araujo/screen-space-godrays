@@ -7,6 +7,7 @@
 #include <cassert>
 #include <exception>
 #include <glm/glm.hpp>
+#include <stdexcept>
 
 namespace gl
 {

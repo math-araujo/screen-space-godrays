@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <numeric>
+#include <print>
 #include <tiny_obj_loader.h>
 
 #include "io.hpp"
@@ -12,17 +14,34 @@
 namespace gl
 {
 
-// std::unordered_map<std::string, Mesh> read_triangle_mesh(const std::string& filename, bool verbose)
 std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& filename, bool verbose)
 {
     // Cannot concatenate std::string_view, must use std::string
-    const static std::string base_materials_path{"assets/materials/"};
+    auto check_path = [](const auto& filepath)
+    {
+        if (!std::filesystem::exists(filepath))
+        {
+            throw std::runtime_error{std::format("read_triangle_mesh: path {} does not exists", filepath.string())};
+        }
+        if (!std::filesystem::is_regular_file(filepath))
+        {
+            throw std::runtime_error{std::format("read_triangle_mesh: path {} is not a file", filepath.string())};
+        }
+    };
+    const static std::filesystem::path base_materials_path{ASSETS_DIR "/materials/"};
     tinyobj::ObjReaderConfig reader_config;
-    reader_config.mtl_search_path = base_materials_path;
+    reader_config.mtl_search_path = base_materials_path.string();
     tinyobj::ObjReader reader;
 
-    const static std::string base_models_path{"assets/models/"};
-    if (!reader.ParseFromFile(base_models_path + filename, reader_config))
+    const static std::filesystem::path base_models_path{ASSETS_DIR "/models/"};
+    const auto filepath{base_models_path / filename};
+    check_path(filepath);
+    if (verbose)
+    {
+        std::println("Reading file {}", filepath.string());
+    }
+
+    if (!reader.ParseFromFile(filepath.string(), reader_config))
     {
         if (!reader.Error().empty())
         {
@@ -160,7 +179,7 @@ std::unordered_map<std::string, Model> read_triangle_mesh(const std::string& fil
                     }
                     else
                     {
-                        const static std::string textures_path{"assets/textures/"};
+                        const static std::string textures_path{ASSETS_DIR "/textures/"};
                         material.diffuse_map =
                             create_texture_from_file(textures_path + previous_material.diffuse_texname,
                                                      Texture::Attributes{.internal_format = GL_SRGB});
