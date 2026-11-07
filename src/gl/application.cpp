@@ -13,12 +13,101 @@
 
 #include <exception>
 #include <iostream>
+#include <print>
 #include <string>
 
 #include "framebuffer.hpp"
 #include "mesh.hpp"
 #include "shader.hpp"
 #include "texture.hpp"
+
+// Code mostly from here: https://learnopengl.com/In-Practice/Debugging
+// Just replaced good ol' cout for shiny println
+// https://wikis.khronos.org/opengl/OpenGL_Error
+// 404 error, but I suppose this is the page I needed the most: https://wikis.khronos.org/opengl/GL_Error_Codes
+//
+void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
+                            const char* message, const void* userParam)
+{
+    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) // black magic, what are these parameters for?
+    {
+        return;
+    }
+
+    std::println("Debug message ({}): {}", id, message);
+
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API:
+        std::println("Source: API");
+        break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        std::println("Source: Window System");
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        std::println("Source: Shader Compiler");
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        std::println("Source: Third Party");
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        std::println("Source: Application");
+        break;
+    case GL_DEBUG_SOURCE_OTHER:
+        std::println("Source: Other");
+        break;
+    }
+    std::println("");
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+        std::println("Type: Error");
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        std::println("Type: Deprecated Behaviour");
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        std::println("Type: Undefined Behaviour");
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        std::println("Type: Portability");
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        std::println("Type: Performance");
+        break;
+    case GL_DEBUG_TYPE_MARKER:
+        std::println("Type: Marker");
+        break;
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        std::println("Type: Push Group");
+        break;
+    case GL_DEBUG_TYPE_POP_GROUP:
+        std::println("Type: Pop Group");
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        std::println("Type: Other");
+        break;
+    }
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+        std::println("Severity: high");
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        std::println("Severity: medium");
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        std::println("Severity: low");
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        std::println("Severity: notification");
+        break;
+    }
+
+    std::println("");
+}
 
 namespace gl
 {
@@ -33,6 +122,17 @@ Application::Application(int window_width, int window_height, std::string_view t
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
+#ifndef NDEBUG
+    int flags{0};
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+#endif
 }
 
 void Application::create_context(std::string_view title)
@@ -49,6 +149,9 @@ void Application::create_context(std::string_view title)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 8);
+#ifndef NDEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+#endif
 
     window_ = glfwCreateWindow(width_, height_, title.data(), nullptr, nullptr);
     if (!window_)

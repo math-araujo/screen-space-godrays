@@ -223,6 +223,9 @@ Texture create_texture_from_file(std::string_view filename, Texture::Attributes 
     stbi_set_flip_vertically_on_load(flip_on_load);
     unsigned char* data = stbi_load(filename.data(), &width, &height, &number_of_channels, 0);
     assert(data != nullptr);
+    assert(width != 0);
+    assert(height != 0);
+    assert(number_of_channels != 0);
     if (number_of_channels == 3)
     {
         attributes.pixel_data_format = GL_RGB;

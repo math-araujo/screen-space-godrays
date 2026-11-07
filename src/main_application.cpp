@@ -8,18 +8,23 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <optional>
+#include <print>
 #include <vector>
 
 #include "gl/io.hpp"
 #include "gl/texture.hpp"
 #include "main_application.hpp"
+#include <cstdint>
 
 MainApplication::MainApplication(int window_width, int window_height, std::string_view title) :
     gl::Application(window_width, window_height, title)
 {
+    std::println("\nOpenGL Vendor: {}\nOpenGL Renderer: {}\nOpenGL Version: {}\nOpenGL Shading Language Version: {}\n",
+                 glGetString(GL_VENDOR), glGetString(GL_RENDERER), glGetString(GL_VERSION),
+                 glGetString(GL_SHADING_LANGUAGE_VERSION));
+
     camera().set_position(glm::vec3{-5.73f, 1.91f, 2.15f});
     camera().set_pitch_yaw(glm::vec2{3.0f, 84.5});
 
@@ -77,11 +82,11 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     models_ = gl::read_triangle_mesh("uv_sphere.obj");
     models_.merge(gl::read_triangle_mesh("arclight.obj"));
     models_.merge(gl::read_triangle_mesh("sibenik.obj"));
+    models_.at("sibenik").translation = glm::vec3{0.0f, 10.0f, 0.0f};
     models_.at("sibenik").sort_by_texture();
     light_.direction = glm::vec3{17.143f, 6.857f, 4.225f};
-    models_.at("UVSphere").translation = light_.direction;
-    models_.at("arclight").scale = glm::vec3{1.6f, 2.0f, 1.5f};
-    models_.at("arclight").translation = glm::vec3{18.5f, 10.0f, 6.0f};
+    models_.at("UVSphere").translation = glm::vec3{0.0f, 10.0f, 0.0f};
+    models_.at("arclight").translation = glm::vec3{0.0f, 10.0f, 0.0f};
 
     // Set light uniforms
     texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
@@ -321,12 +326,11 @@ void MainApplication::render_imgui_editor()
 
     if (ImGui::SliderFloat3("Light Direction", glm::value_ptr(light_.direction), -20.0f, 20.0f))
     {
-        models_.at("UVSphere").translation = light_.direction;
         texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
         color_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
     }
 
-    ImTextureID imgui_texture_id = reinterpret_cast<void*>(static_cast<std::intptr_t>(shadow_map_fbo_->depth_id()));
+    ImTextureID imgui_texture_id = static_cast<ImTextureID>((static_cast<std::intptr_t>(shadow_map_fbo_->depth_id())));
     ImGui::Image(imgui_texture_id, ImVec2{200, 200}, ImVec2{0.0f, 0.0f}, ImVec2{1.0f, 1.0f},
                  ImVec4{1.0f, 1.0f, 1.0f, 1.0f}, ImVec4{1.0f, 1.0f, 1.0f, 0.5f});
 
