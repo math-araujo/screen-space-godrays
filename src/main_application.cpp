@@ -21,9 +21,11 @@
 MainApplication::MainApplication(int window_width, int window_height, std::string_view title) :
     gl::Application(window_width, window_height, title)
 {
+    auto to_cstr = [](const GLubyte* gl_msg) { return reinterpret_cast<const char*>(gl_msg); };
+
     std::println("\nOpenGL Vendor: {}\nOpenGL Renderer: {}\nOpenGL Version: {}\nOpenGL Shading Language Version: {}\n",
-                 glGetString(GL_VENDOR), glGetString(GL_RENDERER), glGetString(GL_VERSION),
-                 glGetString(GL_SHADING_LANGUAGE_VERSION));
+                 to_cstr(glGetString(GL_VENDOR)), to_cstr(glGetString(GL_RENDERER)), to_cstr(glGetString(GL_VERSION)),
+                 to_cstr(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 
     camera().set_position(glm::vec3{-5.73f, 1.91f, 2.15f});
     camera().set_pitch_yaw(glm::vec2{3.0f, 84.5});
@@ -82,11 +84,12 @@ MainApplication::MainApplication(int window_width, int window_height, std::strin
     models_ = gl::read_triangle_mesh("uv_sphere.obj");
     models_.merge(gl::read_triangle_mesh("arclight.obj"));
     models_.merge(gl::read_triangle_mesh("sibenik.obj"));
-    models_.at("sibenik").translation = glm::vec3{0.0f, 10.0f, 0.0f};
+    const glm::vec3 floor_offset{0.0f, 15.3f, 0.0f};
+    models_.at("sibenik").translation = floor_offset;
     models_.at("sibenik").sort_by_texture();
     light_.direction = glm::vec3{17.143f, 6.857f, 4.225f};
-    models_.at("UVSphere").translation = glm::vec3{0.0f, 10.0f, 0.0f};
-    models_.at("arclight").translation = glm::vec3{0.0f, 10.0f, 0.0f};
+    models_.at("UVSphere").translation = light_.direction;
+    models_.at("arclight").translation = floor_offset;
 
     // Set light uniforms
     texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
@@ -218,12 +221,19 @@ void MainApplication::render()
     post_process_shader_->set_bool_uniform("apply_radial_blur", apply_radial_blur_);
     occlusion_fbo_->bind_color(0);
 
-    // Each light source is initially centered at origin; the model matrix is responsible
-    // for updating it's position in the world space.
     std::vector<glm::vec4> light_positions;
-    for (auto& light : light_models)
+    for (const auto& god_rays_center : _god_rays_centers)
     {
-        const glm::vec4 clip_light_position{view_projection * light->transform() * glm::vec4{0.0f, 0.0f, 0.0f, 1.0f}};
+        // DEPRECATED comment (keeping for reference, maybe I will go back to this other time):
+        // Each light source is initially centered at origin; the model matrix is responsible
+        // for updating it's position in the world space.
+        // const glm::vec4 clip_light_position{view_projection * light->transform() * glm::vec4{0.0f, 0.0f,
+        // 0.0f, 1.0f}};
+
+        // After having to re-export geometry from Blender, the mesh vertices exported
+        // already contain the model positions (instead of being cnetered at origin).
+        // So replace the model matrix by the world-space position where god rays "start" from.
+        const glm::vec4 clip_light_position{view_projection * glm::vec4{god_rays_center, 1.0f}};
         const glm::vec4 ndc_light_position{clip_light_position / clip_light_position.w};
         const glm::vec4 screen_space_light_position{(ndc_light_position + 1.0f) * 0.5f};
         light_positions.emplace_back(screen_space_light_position);
@@ -326,6 +336,7 @@ void MainApplication::render_imgui_editor()
 
     if (ImGui::SliderFloat3("Light Direction", glm::value_ptr(light_.direction), -20.0f, 20.0f))
     {
+        models_.at("UVSphere").translation = light_.direction;
         texture_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
         color_blinn_phong_shader_->set_vec3_uniform("light.direction", light_.direction);
     }

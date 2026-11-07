@@ -68,6 +68,7 @@ private:
                                 .specular = glm::vec3{0.2f, 0.2f, 0.2f}};
     PostprocessingCoefficients coefficients{
         .num_samples = 100, .density = 1.0f, .exposure = 1.0f, .decay = 1.0f, .weight = 0.01f};
+    std::vector<glm::vec3> _god_rays_centers{{18.5f, 10.0f, 6.0f}};
     bool apply_radial_blur_{true};
     ShadowMapParameters shadow_map_parameters_{};
 
